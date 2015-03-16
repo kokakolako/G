@@ -1,12 +1,11 @@
 #!/bin/env python3
 
 import re, subprocess, sys
-from os.path import basename
 
 data = { "add": [], "reset": [] }
 branches = []
 
-def showUsage():
+def usage():
     usage = """
 DESCRIPTION:
 
@@ -25,13 +24,13 @@ SYNTAX COMPARED TO GIT:
     """
     print( usage )
 
-def isPath( possiblePath ):
+def is_path( possiblePath ):
     if re.match( "([\W~]*[\/\\\])+(\W*\/|\W*)|[\W~]*", possiblePath ):
         return True
     else:
         return False
 
-def isBranch( possibleBranch ):
+def is_branch( possibleBranch ):
     if re.match( "\@\W*", possibleBranch ):
         return True
     else:
@@ -40,7 +39,7 @@ def isBranch( possibleBranch ):
 def git( cmd, files ):
     subprocess.call( [ "git", cmd ] + files )
 
-def getOperator( args ):
+def get_operator( args ):
     for arg in args:
         index = args.index( arg )
         if index == 0:
@@ -56,49 +55,49 @@ def getOperator( args ):
             elif arg == ">":
                 return "merge"
 
-def parseArgs( operator, args ):
+def parse_args( operator, args ):
 
     global data
     global branches
 
     length = len( args ) - 1
-    operator = getOperator( args )
+    operator = get_operator( args )
 
     for arg in args:
         index = args.index( arg )
         if index < length:
             if index >= 0:
-                if isBranch( arg ) and not operator  == "set":
+                if is_branch( arg ) and not operator  == "set":
                     branches.append( arg[1:] )
             elif index > 0:
                 if arg == "+":
                     del args[0:index]
-                    parseArgs( args )
+                    parse_args( args )
                 elif arg == "-":
                     del args[0:index]
-                    parseArgs( args )
-                elif isPath( arg ):
+                    parse_args( args )
+                elif is_path( arg ):
                     data[operator].append( arg )
         elif index == length:
             if operator == "push" or operator == "merge":
                 branches.append( arg[1:] )
-            elif isPath( arg ):
+            elif is_path( arg ):
                 data[operator].append( arg )
 
 def main():
 
     if len( sys.argv ) == 1:
-        rawInput = input( "G: " )
+        user_input = input( "G: " )
     else:
-        rawInput = sys.argv[1]
+        user_input = sys.argv[1]
 
-    args = rawInput.split()
-    operator = getOperator( args )
+    args = user_input.split()
+    operator = get_operator( args )
 
     if not args:
-        showUsage()
+        usage()
     else:
-        parseArgs( operator, args )
+        parse_args( operator, args )
 
     if data.get( "add" ) != []:
         git( "add", data.get( "add" ) )
