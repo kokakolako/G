@@ -23,23 +23,16 @@ DESCRIPTION:
 
 G is an interface to simplify the work with the git command line tool.
 
-SYNTAX:
+SYNTAX COMPARED TO GIT:
 
-- Add files to the index:
-    Git standard syntax:                G Syntax:
-        git add file1 file2                 + file1 file2
-
-- Remove files from the index:
-    Git standard syntax:                G Syntax:
-        git reset file1 file2               - file1 file2
-
-- Push branches to a remote repository:
-    Git Standard Syntax:                G Syntax:
-        git push origin master              @master -> @origin
-
-- Merge branches:
-    Git standard syntax:                G Syntax:
-        git merge feature-branch            @feature-branch > @master
++------------------------------------+--------------------------+---------------------------+
+| Task                               | Git syntax               | G Syntax                  |
++--------------------------------------+--------------------------+-------------------------+
+| Add files to the index             | git add file1 file2      | + file1 file2             |
+| Remove files from the index        | git reset file1 file2    | - file1 file2             |
+| Push branch to a remote repository | git push origin master   | @master -> @origin        |
+| Merge branches                     | git merge feature-branch | @feature-branch > @master |
++------------------------------------+--------------------------+---------------------------+
     """
     print( usage )
 
