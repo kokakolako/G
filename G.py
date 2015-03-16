@@ -4,7 +4,6 @@ import re, subprocess, sys
 from os.path import basename
 
 data = { "add": [], "reset": [] }
-operator = ""
 branches = []
 
 def showUsage():
@@ -41,29 +40,36 @@ def isBranch( possibleBranch ):
 def git( cmd, files ):
     subprocess.call( [ "git", cmd ] + files )
 
-def parseArgs( args ):
+def getOperator( args ):
+    for arg in args:
+        index = args.index( arg )
+        if index == 0:
+            if arg == "+":
+                return "add"
+            elif arg == "-":
+                return "reset"
+        elif index >= 0:
+            if arg == "=":
+                return "set"
+            if arg == "->":
+                return "push"
+            elif arg == ">":
+                return "merge"
+
+def parseArgs( operator, args ):
 
     global data
-    global operator
     global branches
 
     length = len( args ) - 1
+    operator = getOperator( args )
 
     for arg in args:
         index = args.index( arg )
         if index < length:
             if index >= 0:
-                if arg == "->":
-                    operator = "push"
-                elif arg == ">":
-                    operator = "merge"
-                elif isBranch( arg ):
+                if isBranch( arg ) and not operator  == "set":
                     branches.append( arg[1:] )
-            elif index == 0:
-                if arg == "+":
-                    operator = "add"
-                elif arg == "-":
-                    operator = "reset"
             elif index > 0:
                 if arg == "+":
                     del args[0:index]
@@ -74,9 +80,7 @@ def parseArgs( args ):
                 elif isPath( arg ):
                     data[operator].append( arg )
         elif index == length:
-            if operator == "push":
-                branches.append( arg[1:] )
-            elif operator == "merge":
+            if operator == "push" or operator == "merge":
                 branches.append( arg[1:] )
             elif isPath( arg ):
                 data[operator].append( arg )
@@ -89,11 +93,12 @@ def main():
         rawInput = sys.argv[1]
 
     args = rawInput.split()
+    operator = getOperator( args )
 
     if not args:
         showUsage()
     else:
-        parseArgs( args )
+        parseArgs( operator, args )
 
     if data.get( "add" ) != []:
         git( "add", data.get( "add" ) )
