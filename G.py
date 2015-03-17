@@ -1,9 +1,27 @@
 #!/bin/env python3
 
-import re, subprocess, sys
+import re, subprocess, sys, atexit, code, os, readline, yaml
+from cli_colors import fg
 
-data = { "add": [], "reset": [] }
+data = { "add": [], "reset": [], "diff": [] }
+files = []
 branches = []
+
+class GConsole( code.InteractiveConsole ):
+    def __init__( self, locals = None, filename = "<console>" ):
+        history_file = os.path.expanduser( "~/.config/G/history" )
+        code.InteractiveConsole.__init__(self, locals, filename)
+        self.init_history( history_file )
+    def init_history( self, history_file ):
+        readline.parse_and_bind( "tab: complete" )
+        if hasattr( readline, "read_history_file" ):
+            try:
+                readline.read_history_file( history_file )
+            except FileNotFoundError:
+                pass
+            atexit.register( self.save_history, history_file )
+    def save_history( self, history_file ):
+        readline.write_history_file( history_file )
 
 def usage():
     usage = """
@@ -22,22 +40,55 @@ SYNTAX COMPARED TO GIT:
 | Merge branches                     | git merge feature-branch | @feature-branch > @master |
 +------------------------------------+--------------------------+---------------------------+
     """
-    print( usage )
+    print(  usage )
 
-def is_path( possiblePath ):
-    if re.match( "([\W~]*[\/\\\])+(\W*\/|\W*)|[\W~]*", possiblePath ):
+def is_path( possible_path ):
+    if re.match( "([\W~]*[\/\\\])+(\W*\/|\W*)|[\W~]*", possible_path ):
         return True
     else:
         return False
 
-def is_branch( possibleBranch ):
-    if re.match( "\@\W*", possibleBranch ):
+def is_branch( possible_branch ):
+    if re.match( "\@\W*", possible_branch ):
         return True
     else:
         return False
+
+def error( message ):
+    print( message )
+    sys.exit( 1 )
 
 def git( cmd, files ):
     subprocess.call( [ "git", cmd ] + files )
+
+def get_remotes():
+    cwd = os.getcwd()
+    settings = parse_yaml_config()
+    for repository in settings:
+        for key in repository.keys():
+            if os.path.expanduser( key ) == os.path.expanduser( cwd ):
+                    remotes = repository.get( key ).get( "remotes" )
+                    return remotes
+
+def set_remote( name, url ):
+    settings = parse_yaml_config()
+    cwd = os.getcwd()
+    remotes = get_remotes()
+    if not remotes:
+        settings.append( { cwd: { "remotes": [ { name: url }] } } )
+    else:
+        remotes.append( { name: url } )
+
+    for repository in settings:
+        index = settings.index( repository ) - 1
+        for key in repository.keys():
+            if os.path.expanduser( key ) == cwd:
+                settings[index][key]["remotes"] = remotes
+
+    file = os.path.expanduser( "~/.config/G/config.yml" )
+    if os.path.exists( file ):
+        with open( file , "w" ) as yaml_config:
+            yaml_config.write( yaml.dump( settings, default_flow_style = False ) )
 
 def get_operator( args ):
     for arg in args:
@@ -47,18 +98,20 @@ def get_operator( args ):
                 return "add"
             elif arg == "-":
                 return "reset"
-        elif index >= 0:
-            if arg == "=":
-                return "set"
-            if arg == "->":
-                return "push"
-            elif arg == ">":
-                return "merge"
+            elif arg == "~":
+                return "diff"
+        if arg == "=":
+            return "set"
+        elif arg == "->":
+            return "push"
+        elif arg == ">":
+            return "merge"
 
 def parse_args( operator, args ):
 
     global data
     global branches
+    global files
 
     length = len( args ) - 1
     operator = get_operator( args )
@@ -67,13 +120,18 @@ def parse_args( operator, args ):
         index = args.index( arg )
         if index < length:
             if index >= 0:
-                if is_branch( arg ) and not operator  == "set":
+                if is_branch( arg ):
                     branches.append( arg[1:] )
+                if is_path( arg ):
+                    files.append( arg )
             elif index > 0:
                 if arg == "+":
                     del args[0:index]
                     parse_args( args )
                 elif arg == "-":
+                    del args[0:index]
+                    parse_args( args )
+                elif arg == "~":
                     del args[0:index]
                     parse_args( args )
                 elif is_path( arg ):
@@ -84,10 +142,18 @@ def parse_args( operator, args ):
             elif is_path( arg ):
                 data[operator].append( arg )
 
+def parse_yaml_config():
+    file = os.path.expanduser( "~/.config/G/config.yml" )
+    if os.path.exists( file ):
+        with open( file , "r" ) as yaml_config:
+            settings = yaml.load( yaml_config )
+    return settings
+
 def main():
 
     if len( sys.argv ) == 1:
-        user_input = input( "G: " )
+        console = GConsole()
+        user_input = console.raw_input( "G " + fg.red( ">" ) + " " )
     else:
         user_input = sys.argv[1]
 
@@ -99,10 +165,12 @@ def main():
     else:
         parse_args( operator, args )
 
-    if data.get( "add" ) != []:
+    if not data.get( "add" ) == []:
         git( "add", data.get( "add" ) )
-    elif data.get( "reset" ) != []:
+    elif not data.get( "reset" ) == []:
         git( "reset", data.get( "reset" ) )
+    elif not data.get( "diff" ) == []:
+        git( "diff", data.get( "diff" ) )
 
     if operator == "push":
         if len( branches ) == 1:
@@ -111,7 +179,7 @@ def main():
             git( "push", [ branches[1], branches[0] ] )
     elif operator == "merge":
         if len( branches ) == 1:
-            git( "merge", [ branches[0] ] )
+            git( "merge", branches )
         elif len( branches ) == 2:
             git( "checkout",  [ branches[0] ]  )
             git( "merge", branches[1] )
