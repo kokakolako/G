@@ -23,25 +23,6 @@ class GConsole( code.InteractiveConsole ):
     def save_history( self, history_file ):
         readline.write_history_file( history_file )
 
-def usage():
-    usage = """
-DESCRIPTION:
-
-G is an interface to simplify the work with the git command line tool.
-
-SYNTAX COMPARED TO GIT:
-
-+------------------------------------+--------------------------+---------------------------+
-| Task                               | Git syntax               | G Syntax                  |
-+--------------------------------------+--------------------------+-------------------------+
-| Add files to the index             | git add file1 file2      | + file1 file2             |
-| Remove files from the index        | git reset file1 file2    | - file1 file2             |
-| Push branch to a remote repository | git push origin master   | @master -> @origin        |
-| Merge branches                     | git merge feature-branch | @feature-branch > @master |
-+------------------------------------+--------------------------+---------------------------+
-    """
-    print(  usage )
-
 def is_path( possible_path ):
     if re.match( "([\W~]*[\/\\\])+(\W*\/|\W*)|[\W~]*", possible_path ):
         return True
@@ -149,6 +130,25 @@ def parse_yaml_config():
             settings = yaml.load( yaml_config )
     return settings
 
+def usage():
+    usage = """\
+DESCRIPTION:
+
+G is an interface to simplify the work with the git command line tool.
+
+SYNTAX COMPARED TO GIT:
+
++------------------------------------+--------------------------+---------------------------+
+| Task                               | Git syntax               | G Syntax                  |
++--------------------------------------+--------------------------+-------------------------+
+| Add files to the index             | git add file1 file2      | + file1 file2             |
+| Remove files from the index        | git reset file1 file2    | - file1 file2             |
+| Push branch to a remote repository | git push origin master   | @master -> @origin        |
+| Merge branches                     | git merge feature-branch | @feature-branch > @master |
++------------------------------------+--------------------------+---------------------------+\
+"""
+    print(  usage )
+
 def main():
 
     if len( sys.argv ) == 1:
@@ -186,6 +186,8 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
+        while True:
+            main()
     except BaseException:
-        sys.exit(1)
+        sys.exit(0)
+
