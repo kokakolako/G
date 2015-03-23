@@ -2,10 +2,7 @@
 
 import re, subprocess, sys, atexit, code, os, readline, yaml
 from cli_colors import fg
-
-data = { "add": [], "reset": [], "diff": [] }
-files = []
-branches = []
+from glob import glob
 
 class GConsole( code.InteractiveConsole ):
     def __init__( self, locals = None, filename = "<console>" ):
@@ -35,42 +32,6 @@ def is_branch( possible_branch ):
     else:
         return False
 
-def error( message ):
-    print( message )
-    sys.exit( 1 )
-
-def git( cmd, files ):
-    subprocess.call( [ "git", cmd ] + files )
-
-def get_remotes():
-    cwd = os.getcwd()
-    settings = parse_yaml_config()
-    for repository in settings:
-        for key in repository.keys():
-            if os.path.expanduser( key ) == os.path.expanduser( cwd ):
-                    remotes = repository.get( key ).get( "remotes" )
-                    return remotes
-
-def set_remote( name, url ):
-    settings = parse_yaml_config()
-    cwd = os.getcwd()
-    remotes = get_remotes()
-    if not remotes:
-        settings.append( { cwd: { "remotes": [ { name: url }] } } )
-    else:
-        remotes.append( { name: url } )
-
-    for repository in settings:
-        index = settings.index( repository ) - 1
-        for key in repository.keys():
-            if os.path.expanduser( key ) == cwd:
-                settings[index][key]["remotes"] = remotes
-
-    file = os.path.expanduser( "~/.config/G/config.yml" )
-    if os.path.exists( file ):
-        with open( file , "w" ) as yaml_config:
-            yaml_config.write( yaml.dump( settings, default_flow_style = False ) )
-
 def get_operator( args ):
     for arg in args:
         index = args.index( arg )
@@ -89,14 +50,11 @@ def get_operator( args ):
             return "merge"
 
 def parse_args( operator, args ):
-
     global data
     global branches
     global files
-
     length = len( args ) - 1
     operator = get_operator( args )
-
     for arg in args:
         index = args.index( arg )
         if index < length:
@@ -123,12 +81,77 @@ def parse_args( operator, args ):
             elif is_path( arg ):
                 data[operator].append( arg )
 
-def parse_yaml_config():
-    file = os.path.expanduser( "~/.config/G/config.yml" )
+def get_remotes():
+    cwd = os.getcwd()
+    for repository in settings.get( "repositories" ):
+        for key in repository.keys():
+            if os.path.expanduser( key ) == os.path.expanduser( cwd ):
+                    return repository.get( key ).get( "remotes" )
+
+def set_remote( name, url ):
+    cwd = os.getcwd()
+    remotes = get_remotes()
+    if not remotes:
+        settings.get( "repositories" ).append( { cwd: { "remotes": [ { name: url }] } } )
+    for repository in settings.get( "repositories" ):
+        for key in repository.keys():
+            if os.path.expanduser( key ) == os.path.expanduser( cwd ):
+                    remotes = repository.get( key ).get( "remotes" )
+    else:
+        # Check if name is contained in all remotes
+        if not name in [ list( remote.keys() )[0] for remote in remotes ]:
+            remotes.append( { name: url } )
+    for repository in settings.get( "repositories" ):
+        index = settings.get( "repositories" ).index( repository ) - 1
+        for key in repository.keys():
+            if os.path.expanduser( key ) == cwd:
+                settings["repositories"][index][key]["remotes"] = remotes
+    save_settings( settings )
+
+def save_settings( settings, path_to_config = "~/.config/G/config.yml" ):
+    file = os.path.expanduser( path_to_config )
+    if os.path.exists( file ):
+        with open( file , "w" ) as yaml_config:
+            yaml_config.write( yaml.dump( settings, default_flow_style = False ) )
+
+def parse_yaml_config( path_to_config = "~/.config/G/config.yml" ):
+    file = os.path.expanduser( path_to_config )
     if os.path.exists( file ):
         with open( file , "r" ) as yaml_config:
-            settings = yaml.load( yaml_config )
-    return settings
+            return yaml.load( yaml_config )
+
+def get_submodules():
+    ignored_submodules = [ os.path.expanduser( module ) for module in settings.get( "ignore-submodules" ) ]
+    submodules = find_submodules()
+    for submodule in submodules:
+        for ignored_submodule in ignored_submodules:
+            if match( ignored_submodule, submodule ):
+                submodules.remove( submodule )
+    return submodules
+
+def find_submodules( directory = os.path.expanduser( "~" ) ):
+    submodules = []
+    for dirpath, dirnames, filenames in os.walk( directory ):
+        for file in filenames:
+            if file == ".gitmodules":
+                submodules.append( os.path.expanduser( os.path.join( dirpath, file ) ) )
+    return submodules
+
+def ignore_submodule( path_to_submodule ):
+    ignored_submodules = [ os.path.expanduser( module ) for module in settings.get( "ignore-submodules" ) ]
+    if not path_to_submodule in ignored_submodules:
+        ignored_submodules.append( os.expanduser( path_to_submodule ) )
+    save_settings( settings )
+
+def error( message ):
+    print( message )
+    sys.exit( 1 )
+
+def git( cmd, files ):
+    try:
+        subprocess.call( [ "git", cmd ] + files )
+    except OSError:
+        error( "Git need to be installed to proberly use G" )
 
 def usage():
     usage = """\
@@ -140,14 +163,15 @@ SYNTAX COMPARED TO GIT:
 
 +------------------------------------+--------------------------+---------------------------+
 | Task                               | Git syntax               | G Syntax                  |
-+--------------------------------------+--------------------------+-------------------------+
++------------------------------------+--------------------------+---------------------------+
 | Add files to the index             | git add file1 file2      | + file1 file2             |
 | Remove files from the index        | git reset file1 file2    | - file1 file2             |
 | Push branch to a remote repository | git push origin master   | @master -> @origin        |
 | Merge branches                     | git merge feature-branch | @feature-branch > @master |
+| Diff files                         | git diff file1 file 2    | ~ file1 file2             |
 +------------------------------------+--------------------------+---------------------------+\
 """
-    print(  usage )
+    print( usage )
 
 def main():
 
@@ -157,8 +181,12 @@ def main():
     else:
         user_input = sys.argv[1]
 
+    data = { "add": [], "reset": [], "diff": [] }
+    files = []
+    branches = []
     args = user_input.split()
     operator = get_operator( args )
+    settings = parse_yaml_config()
 
     if not args:
         usage()
@@ -190,4 +218,3 @@ if __name__ == "__main__":
             main()
     except BaseException:
         sys.exit(0)
-
