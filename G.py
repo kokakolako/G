@@ -4,6 +4,10 @@ import re, subprocess, sys, atexit, code, os, readline, yaml
 from cli_colors import fg
 from glob import glob
 
+data = { "add": [], "reset": [], "diff": [] }
+files = []
+branches = []
+
 class GConsole( code.InteractiveConsole ):
     def __init__( self, locals = None, filename = "<console>" ):
         history_file = os.path.expanduser( "~/.config/G/history" )
@@ -181,9 +185,6 @@ def main():
     else:
         user_input = sys.argv[1]
 
-    data = { "add": [], "reset": [], "diff": [] }
-    files = []
-    branches = []
     args = user_input.split()
     operator = get_operator( args )
     settings = parse_yaml_config()
