@@ -8,7 +8,7 @@ class config():
     def __init__():
         if not os.path.exists( os.path.join( xdg_conf, "G" )):
             os.mkdir( os.path.join( xdg_conf, "G" ) )
-        elif not os.path.isfile( os.path.expanduser( "~/.config/G/config.yml" ) ):
+        if not os.path.isfile( os.path.expanduser( "~/.config/G/config.yml" ) ):
             with open( os.path.expanduser( "~/.config/G/config.yml", "w" ) ) as file:
                 file.close()
     def path():
@@ -44,6 +44,13 @@ def is_branch( possible_branch ):
     else:
         return False
 
+def get_user_input():
+    if len( sys.argv ) == 1:
+        console = GConsole()
+        return console.raw_input( "G " + fg.red( ">" ) + " " ).split()
+    else:
+        return sys.argv[1].split()
+
 def get_settings():
     config = config.file
     file = os.path.expanduser( config )
@@ -75,7 +82,27 @@ def get_operator( args ):
         elif arg == ">":
             return "merge"
 
-def parse_args( operator, args ):
+def parse_args( args ):
+    """Process all arguments recursive and store them in the operands dictionary
+
+    When the current argument is a special operator (like "+", "-", "~", ...) the arguments
+    before the operator are removed. Now the recursion begins and the function is executed again,
+    when the index is greater than 0. The index must be greater then nill, because the parse_args()
+    function would otherwise loop endless, because the first argument is at everytime an operator,
+    when used in combination with a special operator.
+
+    When the current argument is an operator like "push" or is an file, the argument is simply added
+    to the operands list. When the current argument is a file it would also simply be added to the
+    arguments list. The index of a file or a branch (@master) could also be greater or equal to the
+    index 0 because normal operators does not start a recursive processing of the other arguments.
+
+    When the index of the current argument is as long as the length of the arguments list,
+    this argument is the last argument of the arguments list and is also added to the operands list.
+    At this point the recursion stops, because all elements are added to the operands list.
+
+    Arguments:
+        args: The arguments that need to be parsed
+    """
     length = len( args ) - 1
     operator = get_operator( args )
     for arg in args:
@@ -105,6 +132,7 @@ def parse_args( operator, args ):
                 operands[operator].append( arg )
 
 def get_remotes():
+    """Get all remotes, from the current repository (the current working directory)"""
     cwd = os.getcwd()
     for repository in settings.get( "repositories" ):
         for key in repository.keys():
@@ -112,6 +140,16 @@ def get_remotes():
                     return repository.get( key ).get( "remotes" )
 
 def add_remote( name, url ):
+    """Add a new remote to the config.yml file
+
+    When no remotes are defined in the current repository into the config.yml file.
+    This function adds a new remote to the current repository. The current working
+    directory is used as the name for the current repository.
+
+    Arguments:
+        name: The name for the remote (i.e. origin)
+        url: The url to the remote repository (i.e. git@github.com:kokakolako/G.git)
+    """
     cwd = os.getcwd()
     remotes = get_remotes()
     if not remotes:
@@ -161,16 +199,28 @@ def ignore_submodule( path_to_submodule ):
     save_settings( settings )
 
 def error( message ):
+    """Prints an error message, stops "G" and raises error code 1"""
     print( message )
     sys.exit( 1 )
 
 def git( operator, operand ):
+    """Start a git command as a subprocess
+
+    Arguments:
+        operator: The operator defines the git command, that needs to be executed.
+        This argument must be one of the following: "push", "pull", "merge", "add", "reset"
+        operand: Contains the files or branches, that need to be processed.
+    """
     try:
         subprocess.call( [ "git", operator ] + operand )
     except OSError:
         error( "Git need to be installed to proberly use G" )
 
 def usage():
+    """Display usage information
+
+    When the user does not insert an argument, the usage information are displayed.
+    """
     usage = """\
 DESCRIPTION:
 
@@ -192,13 +242,7 @@ SYNTAX COMPARED TO GIT:
 
 def main():
 
-    if len( sys.argv ) == 1:
-        console = GConsole()
-        user_input = console.raw_input( "G " + fg.red( ">" ) + " " )
-    else:
-        user_input = sys.argv[1]
-
-    args = user_input.split()
+    args = get_user_input()
     operator = get_operator( args )
     operands = { "add": [], "reset": [], "diff": [], "push": [] }
     files = []
@@ -228,6 +272,16 @@ def main():
             git( "merge", operands.get( "push" )[1] )
 
 if __name__ == "__main__":
+    """Start main() function and handle errors
+
+    When the python file is executed this conditional starts the main() function
+    The main() function loops as long, as user stops G via <C-c> or <C-d>.
+    When <C-c> or <C-d> is pressed, to stop the execution, "G" raises no error code.
+
+    When the python file is imported as a package, the settings variable is set.
+    This behaviour makes it possible to use "G" a an python interface to the "Git"
+    command-line program.
+    """
     try:
         while True:
             main()
