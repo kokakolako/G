@@ -1,5 +1,3 @@
-import os, re, subprocess
-
 class config():
     """Get the path to the configuration directory or the configuration file
 
@@ -28,7 +26,7 @@ def is_path( possible_path ):
     Arguments:
         possible_path: A string which should be checked if it is a valid path
     """
-    if re.match( "(([A-Z]\:\\\)|(\~\/)|(\W*))((\W*\/)|(\W*\\\)(\W*))*", possible_path ):
+    if re.match( "(([A-Z]\:\\\\)|(\~[\/]))((\W*\/)|(\W*\\)(\W*))*", possible_path ):
         return True
     else:
         return False

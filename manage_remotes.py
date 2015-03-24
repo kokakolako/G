@@ -1,7 +1,3 @@
-import os
-
-from G import *
-
 def get_remotes():
     """Get all remotes, from the current repository (the current working directory)"""
     for repository in settings.get( "repositories" ):
@@ -29,6 +25,7 @@ def add_remote( name, url ):
             if os.path.expanduser( key ) == os.path.expanduser( cwd ):
                     remotes = repository.get( key ).get( "remotes" )
     else:
+        # Check if name is contained in all remotes
         if not name in [ list( remote.keys() )[0] for remote in remotes ]:
             remotes.append( { name: url } )
     for repository in settings.get( "repositories" ):
