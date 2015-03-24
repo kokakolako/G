@@ -1,7 +1,8 @@
 #!/bin/env python3
 
 import re, subprocess, sys, atexit, code, os, readline, yaml
-from cli_colors import fg
+from cli_colors import *
+from messages import *
 
 class config():
     """Get the path to the configuration directory or the configuration file
@@ -274,31 +275,6 @@ def ignore_submodule( path_to_submodule ):
     if not path_to_submodule in ignored_submodules:
         ignored_submodules.append( os.expanduser( path_to_submodule ) )
     save_settings( settings )
-
-def error( message ):
-    """Prints an error message, stops "G" and raises error code 1
-
-    Arguments:
-        message: The message which should be displayed to the user
-    """
-    print( fg.red( message ) )
-    sys.exit( 1 )
-
-def warning( message ):
-    """Prints an warning
-
-    Arguments:
-        message: The message which should be displayed to the user
-    """
-    print( fg.yellow( message ) )
-
-def success( message ):
-    """Prints an succes message
-
-    Arguments:
-        message: The message which should be displayed to the user
-    """
-    print( fg.green( message ) )
 
 def git( operator, operand ):
     """Start a git command as a subprocess
