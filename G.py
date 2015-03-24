@@ -1,12 +1,29 @@
 #!/bin/env python3
 
 import re, subprocess, sys, atexit, code, os, readline, yaml
+from cli_colors import fg
 
-from cli_colors import *
-from messages import *
-from manage_remotes import *
-from manage_submodules import *
-from helpers import *
+class config():
+    """Get the path to the configuration directory or the configuration file
+
+    Typicall paths for the config file / directory:
+        configuration directory:    ~/.config/G
+        configuration file:         ~/.config/G/config.yml
+
+    Methods:
+        dir: Returns the path to the configuration directory
+        file: Returns the path to the configuration file
+    """
+    def __init__(  ):
+        if not os.path.exists( os.path.join( os.path.expanduser( "~/.config" ), "G" )):
+            os.mkdir( os.path.join( xdg_conf, "G" ) )
+        if not os.path.isfile( os.path.expanduser( os.path.expanduser( "~/.config" ), "~/.config/G/config.yml" ) ):
+            with open( os.path.expanduser( "~/.config/G/config.yml", "w" ) ) as file:
+                file.close()
+    def dir():
+        return os.path.join( os.path.expanduser( "~/.config" ), "G" )
+    def file():
+        return os.path.expanduser( os.path.join( os.path.expanduser( "~/.config" ), "G/config.yml" ) )
 
 class GConsole( code.InteractiveConsole ):
     """Interactive Console with history and emacs short-cuts
@@ -29,6 +46,72 @@ class GConsole( code.InteractiveConsole ):
             atexit.register( self.save_history, history_file )
     def save_history( self, history_file ):
         readline.write_history_file( history_file )
+
+def is_path( possible_path ):
+    """Returns True when the possible_branch is a valid path
+
+    Arguments:
+        possible_path: A string which should be checked if it is a valid path
+    """
+    if re.match( "(([A-Z]\:\\\\)|(\~[\/]))((\W*\/)|(\W*\\)(\W*))*", possible_path ):
+        return True
+    else:
+        return False
+
+def is_branch( possible_branch ):
+    """Returns True when the possible_branch is a branch
+
+    In "G" syntax a branch is escaped by a "@" (i.e. @name_of_branch)
+    This function checks the argument "possible_branch" for exactly this syntax.
+
+    Arguments:
+        possible_branch: A string which should be checked for the branch-syntax of "G"
+    """
+    if re.match( "\@\W*", possible_branch ):
+        return True
+    else:
+        return False
+
+def get_user_input():
+    """Returns the arguments in an list which are typed-in by the user
+
+    When the user defines an argument via the command-line, "G" directly interprets the argument.
+    The argument must be escaped by quotation marks ("), otherwhise they would not be processed.
+
+    When the user simply invakes G witouh an argument, an interacitve shell session is started:
+    The history is saved and some Emacs editing keys are working.
+    """
+    if len( sys.argv ) == 1:
+        console = GConsole()
+        return console.raw_input( "G " + fg.red( ">" ) + " " ).split()
+    else:
+        return sys.argv[1].split()
+
+def get_settings():
+    """Returns a dictionary which contains all settings from the config.yml file"""
+    config_file = config.file()
+    file = os.path.expanduser( config_file )
+    if os.path.exists( file ):
+        with open( file , "r" ) as yaml_config:
+            return yaml.load( yaml_config )
+
+def save_settings( settings ):
+    """Store settings in the config.yml file
+
+    This function saves settings via pyYAML in the config.yml file
+
+    Warning:
+        This function can overwrite the config.yml file, when values are not
+        appended to the settings dictionary
+
+    Arguments:
+        settings: Settings that should be written to the config.yml file
+    """
+    config = config.file
+    file = os.path.expanduser( config )
+    if os.path.exists( file ):
+        with open( file , "w" ) as yaml_config:
+            yaml_config.write( yaml.dump( settings, default_flow_style = False ) )
 
 def get_operator( args ):
     """Get the operator from the Arguments
@@ -104,46 +187,155 @@ def parse_args( args ):
             elif is_path( arg ):
                 operands[operator].append( arg )
 
-def get_user_input():
-    """Returns the arguments in an list which are typed-in by the user
+def get_remotes():
+    """Get all remotes, from the current repository (the current working directory)"""
+    for repository in settings.get( "repositories" ):
+        for key in repository.keys():
+            if os.path.expanduser( key ) == os.path.expanduser( os.getcwd() ):
+                    return repository.get( key ).get( "remotes" )
 
-    When the user defines an argument via the command-line, "G" directly interprets the argument.
-    The argument must be escaped by quotation marks ("), otherwhise they would not be processed.
+def add_remote( name, url ):
+    """Add a new remote to the config.yml file
 
-    When the user simply invakes G witouh an argument, an interacitve shell session is started:
-    The history is saved and some Emacs editing keys are working.
-    """
-    if len( sys.argv ) == 1:
-        console = GConsole()
-        return console.raw_input( "G " + fg.red( ">" ) + " " ).split()
-    else:
-        return sys.argv[1].split()
-
-def get_settings():
-    """Returns a dictionary which contains all settings from the config.yml file"""
-    config_file = config.file()
-    file = os.path.expanduser( config_file )
-    if os.path.exists( file ):
-        with open( file , "r" ) as yaml_config:
-            return yaml.load( yaml_config )
-
-def save_settings( settings ):
-    """Store settings in the config.yml file
-
-    This function saves settings via pyYAML in the config.yml file
-
-    Warning:
-        This function can overwrite the config.yml file, when values are not
-        appended to the settings dictionary
+    When no remotes are defined in the current repository into the config.yml file.
+    This function adds a new remote to the current repository. The current working
+    directory is used as the name for the current repository.
 
     Arguments:
-        settings: Settings that should be written to the config.yml file
+        name: The name for the remote (i.e. origin)
+        url: The url to the remote repository (i.e. git@github.com:kokakolako/G.git)
     """
-    config = config.file
-    file = os.path.expanduser( config )
-    if os.path.exists( file ):
-        with open( file , "w" ) as yaml_config:
-            yaml_config.write( yaml.dump( settings, default_flow_style = False ) )
+    cwd = os.getcwd()
+    remotes = get_remotes()
+    if not remotes:
+        settings.get( "repositories" ).append( { cwd: { "remotes": [ { name: url }] } } )
+    for repository in settings.get( "repositories" ):
+        for key in repository.keys():
+            if os.path.expanduser( key ) == os.path.expanduser( cwd ):
+                    remotes = repository.get( key ).get( "remotes" )
+    else:
+        # Check if name is contained in all remotes
+        if not name in [ list( remote.keys() )[0] for remote in remotes ]:
+            remotes.append( { name: url } )
+    for repository in settings.get( "repositories" ):
+        index = settings.get( "repositories" ).index( repository ) - 1
+        for key in repository.keys():
+            if os.path.expanduser( key ) == cwd:
+                settings["repositories"][index][key]["remotes"] = remotes
+    save_settings( settings )
+
+def get_submodules():
+    """Returns a list of all submodules """
+    ignored_submodules = [ os.path.expanduser( module ) for module in settings.get( "ignore-submodules" ) ]
+    try:
+        submodules = find_submodules()
+    except TypeError:
+        warning( "No submodules are defined in the configuration file: \"" + config.file() + "\"" )
+        return None
+    for submodule in submodules:
+        for ignored_submodule in ignored_submodules:
+            if re.match( ignored_submodule, submodule ):
+                submodules.remove( submodule )
+    return submodules
+
+def add_submodule( name, path, ignore_dirty = True ):
+    """Add a submodule to the list of submodules in the config.yml file
+
+    Arguments:
+        name: Specify a name for the submodule
+        path: The path to the specific submodule
+        ignore_dirty: If the changes to the submodules should NOT be ignored, then set this to False
+    """
+    submodules = get_submodules()
+    if not submodules:
+        settings.get( "submodules" ).append( { name: path, "ignore_dirty": ignore_dirty } )
+        return settings
+
+def find_submodules( dir = os.path.expanduser( "~" ) ):
+    """Search for submodules
+
+    Arguments:
+        dir: The directory from which the function searches for submodules
+    """
+    submodules = ( submodule for submodule in settings.get( "submodules" ))
+    for dirpath, dirnames, filenames in os.walk( dir ):
+        for file in filenames:
+            if file == ".gitmodules":
+                submodules.append( os.path.expanduser( os.path.join( dirpath, file ) ) )
+    return submodules
+
+def ignore_submodule( path_to_submodule ):
+    """Ignore a specific path to a submodule which will be ignored by "G"
+
+    Arguments:
+        path_to_submodule: A path to a submodule which should be ignored by "G"
+    """
+    ignored_submodules = [ os.path.expanduser( module ) for module in settings.get( "ignore-submodules" ) ]
+    if not path_to_submodule in ignored_submodules:
+        ignored_submodules.append( os.expanduser( path_to_submodule ) )
+    save_settings( settings )
+
+def error( message ):
+    """Prints an error message, stops "G" and raises error code 1
+
+    Arguments:
+        message: The message which should be displayed to the user
+    """
+    print( fg.red( message ) )
+    sys.exit( 1 )
+
+def warning( message ):
+    """Prints an warning
+
+    Arguments:
+        message: The message which should be displayed to the user
+    """
+    print( fg.yellow( message ) )
+
+def success( message ):
+    """Prints an succes message
+
+    Arguments:
+        message: The message which should be displayed to the user
+    """
+    print( fg.green( message ) )
+
+def git( operator, operand ):
+    """Start a git command as a subprocess
+
+    Arguments:
+        operator: The operator defines the git command, that needs to be executed.
+        This argument must be one of the following: "push", "pull", "merge", "add", "reset"
+        operand: Contains the files or branches, that need to be processed.
+    """
+    try:
+        subprocess.call( [ "git", operator ] + operand )
+    except OSError:
+        error( "Git need to be installed to proberly use G" )
+
+def usage():
+    """Display usage information
+
+    When the user does not insert an argument, the usage information are displayed.
+    """
+    usage = """\
+DESCRIPTION:
+
+G is an interface to simplify the work with the git command line tool.
+
+SYNTAX COMPARED TO GIT:
+
++------------------------------------+--------------------------+---------------------------+
+| Task                               | Git syntax               | G Syntax                  |
++------------------------------------+--------------------------+---------------------------+
+| Add files to the index             | git add file1 file2      | + file1 file2             |
+| Remove files from the index        | git reset file1 file2    | - file1 file2             |
+| Push branch to a remote repository | git push origin master   | @master → @origin        |
+| Merge branches                     | git merge feature-branch | @feature-branch > @master |
+| Diff files                         | git diff file1 file 2    | ~ file1 file2             |
++------------------------------------+--------------------------+---------------------------+\
+"""
+    print( usage )
 
 def main():
 
