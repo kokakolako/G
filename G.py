@@ -2,11 +2,19 @@
 
 import re, subprocess, sys, atexit, code, os, readline, yaml
 from cli_colors import fg
-from glob import glob
 
-data = { "add": [], "reset": [], "diff": [] }
-files = []
-branches = []
+class config():
+    xgd_conf = os.path.expanduser( "~/.config" )
+    def __init__():
+        if not os.path.exists( os.path.join( xdg_conf, "G" )):
+            os.mkdir( os.path.join( xdg_conf, "G" ) )
+        elif not os.path.isfile( os.path.expanduser( "~/.config/G/config.yml" ) ):
+            with open( os.path.expanduser( "~/.config/G/config.yml", "w" ) ) as file:
+                file.close()
+    def path():
+        return os.path.join( xdg_conf, "G" )
+    def file():
+        return os.path.expanduser( "~/.config/G/config.yml" )
 
 class GConsole( code.InteractiveConsole ):
     def __init__( self, locals = None, filename = "<console>" ):
@@ -36,6 +44,20 @@ def is_branch( possible_branch ):
     else:
         return False
 
+def get_settings():
+    config = config.file
+    file = os.path.expanduser( config )
+    if os.path.exists( file ):
+        with open( file , "r" ) as yaml_config:
+            return yaml.load( yaml_config )
+
+def save_settings( settings ):
+    config = config.file
+    file = os.path.expanduser( config )
+    if os.path.exists( file ):
+        with open( file , "w" ) as yaml_config:
+            yaml_config.write( yaml.dump( settings, default_flow_style = False ) )
+
 def get_operator( args ):
     for arg in args:
         index = args.index( arg )
@@ -54,9 +76,6 @@ def get_operator( args ):
             return "merge"
 
 def parse_args( operator, args ):
-    global data
-    global branches
-    global files
     length = len( args ) - 1
     operator = get_operator( args )
     for arg in args:
@@ -64,9 +83,9 @@ def parse_args( operator, args ):
         if index < length:
             if index >= 0:
                 if is_branch( arg ):
-                    branches.append( arg[1:] )
+                    operands.get( "push" ).append( arg[1:] )
                 if is_path( arg ):
-                    files.append( arg )
+                    operands.get( "files" ).append( arg )
             elif index > 0:
                 if arg == "+":
                     del args[0:index]
@@ -78,12 +97,12 @@ def parse_args( operator, args ):
                     del args[0:index]
                     parse_args( args )
                 elif is_path( arg ):
-                    data[operator].append( arg )
+                    operands[operator].append( arg )
         elif index == length:
             if operator == "push" or operator == "merge":
-                branches.append( arg[1:] )
+                operands.get( "push" ).append( arg[1:] )
             elif is_path( arg ):
-                data[operator].append( arg )
+                operands[operator].append( arg )
 
 def get_remotes():
     cwd = os.getcwd()
@@ -92,7 +111,7 @@ def get_remotes():
             if os.path.expanduser( key ) == os.path.expanduser( cwd ):
                     return repository.get( key ).get( "remotes" )
 
-def set_remote( name, url ):
+def add_remote( name, url ):
     cwd = os.getcwd()
     remotes = get_remotes()
     if not remotes:
@@ -112,29 +131,23 @@ def set_remote( name, url ):
                 settings["repositories"][index][key]["remotes"] = remotes
     save_settings( settings )
 
-def save_settings( settings, path_to_config = "~/.config/G/config.yml" ):
-    file = os.path.expanduser( path_to_config )
-    if os.path.exists( file ):
-        with open( file , "w" ) as yaml_config:
-            yaml_config.write( yaml.dump( settings, default_flow_style = False ) )
-
-def parse_yaml_config( path_to_config = "~/.config/G/config.yml" ):
-    file = os.path.expanduser( path_to_config )
-    if os.path.exists( file ):
-        with open( file , "r" ) as yaml_config:
-            return yaml.load( yaml_config )
-
 def get_submodules():
     ignored_submodules = [ os.path.expanduser( module ) for module in settings.get( "ignore-submodules" ) ]
     submodules = find_submodules()
     for submodule in submodules:
         for ignored_submodule in ignored_submodules:
-            if match( ignored_submodule, submodule ):
+            if re.match( ignored_submodule, submodule ):
                 submodules.remove( submodule )
     return submodules
 
+def add_submodule( name, path ):
+    submodules = get_submodules()
+    if not submodules:
+        settings.get( "submodules" ).append( { name: path } )
+        return settings
+
 def find_submodules( directory = os.path.expanduser( "~" ) ):
-    submodules = []
+    submodules = ( submodule for submodule in settings.get( "submodules" ))
     for dirpath, dirnames, filenames in os.walk( directory ):
         for file in filenames:
             if file == ".gitmodules":
@@ -151,9 +164,9 @@ def error( message ):
     print( message )
     sys.exit( 1 )
 
-def git( cmd, files ):
+def git( operator, operand ):
     try:
-        subprocess.call( [ "git", cmd ] + files )
+        subprocess.call( [ "git", operator ] + operand )
     except OSError:
         error( "Git need to be installed to proberly use G" )
 
@@ -187,31 +200,32 @@ def main():
 
     args = user_input.split()
     operator = get_operator( args )
-    settings = parse_yaml_config()
+    operands = { "add": [], "reset": [], "diff": [], "push": [] }
+    files = []
 
     if not args:
         usage()
     else:
         parse_args( operator, args )
 
-    if not data.get( "add" ) == []:
-        git( "add", data.get( "add" ) )
-    elif not data.get( "reset" ) == []:
-        git( "reset", data.get( "reset" ) )
-    elif not data.get( "diff" ) == []:
-        git( "diff", data.get( "diff" ) )
+    if not operands.get( "add" ) == []:
+        git( "add", operands.get( "add" ) )
+    elif not operands.get( "reset" ) == []:
+        git( "reset", operands.get( "reset" ) )
+    elif not operands.get( "diff" ) == []:
+        git( "diff", operands.get( "diff" ) )
 
     if operator == "push":
-        if len( branches ) == 1:
-            git( "push", [ "origin", branches[0] ] )
-        elif len( branches ) == 2:
-            git( "push", [ branches[1], branches[0] ] )
+        if len( operands.get( "push" ) ) == 1:
+            git( "push", [ "origin", operands.get( "push" )[0] ] )
+        elif len( operands.get( "push" ) ) == 2:
+            git( "push", [ operands.get( "push" )[1], branches[0] ] )
     elif operator == "merge":
-        if len( branches ) == 1:
-            git( "merge", branches )
-        elif len( branches ) == 2:
-            git( "checkout",  [ branches[0] ]  )
-            git( "merge", branches[1] )
+        if len( operands.get( "push" ) ) == 1:
+            git( "merge", operands.get( "push" ) )
+        elif len( operands.get( "push" ) ) == 2:
+            git( "checkout",  [ operands.get( "push" )[0] ]  )
+            git( "merge", operands.get( "push" )[1] )
 
 if __name__ == "__main__":
     try:
@@ -219,3 +233,5 @@ if __name__ == "__main__":
             main()
     except BaseException:
         sys.exit(0)
+elif __name__ == "G":
+    settings = get_settings()
