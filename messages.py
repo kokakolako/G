@@ -1,3 +1,6 @@
+import sys
+from cli_colors import *
+
 def error( message ):
     """Prints an error message, stops "G" and raises error code 1
 

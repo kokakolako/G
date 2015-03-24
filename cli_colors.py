@@ -15,4 +15,3 @@ class fg():
         return "\033[35m" + text + "\033[0m"
     def white( text ):
         return "\033[36m" + text + "\033[0m"
-

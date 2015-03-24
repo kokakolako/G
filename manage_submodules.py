@@ -1,3 +1,8 @@
+import os, re
+
+from G import *
+from helpers import *
+
 def get_submodules():
     """Returns a list of all submodules """
     ignored_submodules = [ os.path.expanduser( module ) for module in settings.get( "ignore-submodules" ) ]

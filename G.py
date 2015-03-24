@@ -1,6 +1,6 @@
 #!/bin/env python3
 
-import re, subprocess, sys, atexit, code, os, readline, yaml
+import sys, atexit, code, os, readline, yaml
 
 from cli_colors import *
 from messages import *
@@ -192,5 +192,5 @@ if __name__ == "__main__":
             main()
     except BaseException:
         sys.exit(0)
-elif __name__ == "G":
+else:
     settings = get_settings()
