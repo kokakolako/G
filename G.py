@@ -49,12 +49,12 @@ class GConsole( code.InteractiveConsole ):
         readline.write_history_file( history_file )
 
 def is_path( possible_path ):
-    """Returns True when the possible_branch is a valid path
+    """Returns True when the possible_branch is a valid path (POSIX/Windows)
 
     Arguments:
         possible_path: A string which should be checked if it is a valid path
     """
-    if re.match( "(([A-Z]\:\\\\)|(\~[\/]))((\W*\/)|(\W*\\)(\W*))*", possible_path ):
+    if re.match( r"^(([A-Z]\:\\\\)|([\/\\]*[\w]+))([\\\/]*[\w\-\.]*)*$", os.path.expanduser( possible_path ) ):
         return True
     else:
         return False
@@ -68,7 +68,7 @@ def is_branch( possible_branch ):
     Arguments:
         possible_branch: A string which should be checked for the branch-syntax of "G"
     """
-    if re.match( "\@\W*", possible_branch ):
+    if re.match( r"^\@[\w\-\.\/]*$", possible_branch ):
         return True
     else:
         return False
@@ -125,31 +125,30 @@ def get_operator( args ):
     """
     for arg in args:
         index = args.index( arg )
+        if index >= 0:
+            if arg == "=":
+                return "set"
+            elif arg == "->":
+                return "push"
+            elif arg == ">":
+                return "merge"
         if index == 0:
             if arg == "+":
                 return "add"
             elif arg == "-":
                 return "reset"
-            elif arg == "~":
-                return "diff"
-        if arg == "=":
-            return "set"
-        elif arg == "→":
-            return "push"
-        elif arg == ">":
-            return "merge"
 
-def parse_args( args ):
-    """Process all arguments recursive and store them in the operands dictionary
+def get_operands( args ):
+    """Returns all operands as an dictionary
 
-    When the current argument is a special operator (like "+", "-", "~", ...) the arguments
+    When the current argument is a special operator (like "+", "-", ...) the arguments
     before the operator are removed. Now the recursion begins and the function is executed again,
-    when the index is greater than 0. The index must be greater then nill, because the parse_args()
+    when the index is greater than 0. The index must be greater then nill, because the get_operands()
     function would otherwise loop endless, because the first argument is at everytime an operator,
     when used in combination with a special operator.
 
-    When the current argument is an operator like "push" or is an file, the argument is simply added
-    to the operands list. When the current argument is a file it would also simply be added to the
+    When the current argument is an operator like "push" or "merge" or is an file, the argument is added
+    to the operands dictionary. When the current argument is a file it would also added to the
     arguments list. The index of a file or a branch (@master) could also be greater or equal to the
     index 0 because normal operators does not start a recursive processing of the other arguments.
 
@@ -158,7 +157,7 @@ def parse_args( args ):
     At this point the recursion stops, because all elements are added to the operands list.
 
     Arguments:
-        args: The arguments that need to be parsed
+        args: The arguments that need to be checked for operands
     """
     length = len( args ) - 1
     operator = get_operator( args )
@@ -166,27 +165,22 @@ def parse_args( args ):
         index = args.index( arg )
         if index < length:
             if index >= 0:
-                if is_branch( arg ):
-                    operands.get( "push" ).append( arg[1:] )
+                if index == 0:
+                    operands = { "add": [], "reset": [], "merge": [], "push": [] }
                 if is_path( arg ):
-                    operands.get( "files" ).append( arg )
+                    operands.get( operator ).append( arg )
+                elif is_branch( arg ):
+                    operands.get( operator ).append( arg[1:] )
             elif index > 0:
-                if arg == "+":
+                if arg == "+" or arg == "-" or arg == "~":
                     del args[0:index]
-                    parse_args( args )
-                elif arg == "-":
-                    del args[0:index]
-                    parse_args( args )
-                elif arg == "~":
-                    del args[0:index]
-                    parse_args( args )
-                elif is_path( arg ):
-                    operands[operator].append( arg )
+                    return get_operands( args )
         elif index == length:
-            if operator == "push" or operator == "merge":
-                operands.get( "push" ).append( arg[1:] )
-            elif is_path( arg ):
-                operands[operator].append( arg )
+            if is_path( arg ):
+                operands.get( operator ).append( arg )
+            elif is_branch( arg ):
+                operands.get( operator ).append( arg[1:] )
+            return operands
 
 def get_remotes():
     """Get all remotes, from the current repository (the current working directory)"""
@@ -215,7 +209,6 @@ def add_remote( name, url ):
             if os.path.expanduser( key ) == os.path.expanduser( cwd ):
                     remotes = repository.get( key ).get( "remotes" )
     else:
-        # Check if name is contained in all remotes
         if not name in [ list( remote.keys() )[0] for remote in remotes ]:
             remotes.append( { name: url } )
     for repository in settings.get( "repositories" ):
@@ -276,16 +269,16 @@ def ignore_submodule( path_to_submodule ):
         ignored_submodules.append( os.expanduser( path_to_submodule ) )
     save_settings( settings )
 
-def git( operator, operand ):
+def git( cmd, operand ):
     """Start a git command as a subprocess
 
     Arguments:
-        operator: The operator defines the git command, that needs to be executed.
-        This argument must be one of the following: "push", "pull", "merge", "add", "reset"
+        cmd: The git command, that should to be executed. This argument must be one
+        of the following: "push", "pull", "merge", "add", "reset"
         operand: Contains the files or branches, that need to be processed.
     """
     try:
-        subprocess.call( [ "git", operator ] + operand )
+        subprocess.call( [ "git", cmd ] + operand )
     except OSError:
         error( "Git need to be installed to proberly use G" )
 
@@ -306,9 +299,8 @@ SYNTAX COMPARED TO GIT:
 +------------------------------------+--------------------------+---------------------------+
 | Add files to the index             | git add file1 file2      | + file1 file2             |
 | Remove files from the index        | git reset file1 file2    | - file1 file2             |
-| Push branch to a remote repository | git push origin master   | @master → @origin        |
+| Push branch to a remote repository | git push origin master   | @master -> @origin        |
 | Merge branches                     | git merge feature-branch | @feature-branch > @master |
-| Diff files                         | git diff file1 file 2    | ~ file1 file2             |
 +------------------------------------+--------------------------+---------------------------+\
 """
     print( usage )
@@ -317,13 +309,11 @@ def main():
 
     args = get_user_input()
     operator = get_operator( args )
-    operands = { "add": [], "reset": [], "diff": [], "push": [] }
-    files = []
 
     if not args:
         usage()
     else:
-        parse_args( operator, args )
+        operands = get_operands( args )
 
     if not operands.get( "add" ) == []:
         git( "add", operands.get( "add" ) )
@@ -336,13 +326,13 @@ def main():
         if len( operands.get( "push" ) ) == 1:
             git( "push", [ "origin", operands.get( "push" )[0] ] )
         elif len( operands.get( "push" ) ) == 2:
-            git( "push", [ operands.get( "push" )[1], branches[0] ] )
+            git( "push", [ operands.get( "push" )[1], operands.get( "push" )[0] ] )
     elif operator == "merge":
-        if len( operands.get( "push" ) ) == 1:
-            git( "merge", operands.get( "push" ) )
-        elif len( operands.get( "push" ) ) == 2:
-            git( "checkout",  [ operands.get( "push" )[0] ]  )
-            git( "merge", operands.get( "push" )[1] )
+        if len( operands.get( "merge" ) ) == 1:
+            git( "merge", operands.get( "merge" )[0] )
+        elif len( operands.get( "merge" ) ) == 2:
+            git( "checkout",  [ operands.get( "merge" )[0] ]  )
+            git( "merge", operands.get( "merge" )[1] )
 
 if __name__ == "__main__":
     """Start main() function and handle errors
@@ -356,8 +346,8 @@ if __name__ == "__main__":
     command-line program.
     """
     try:
-        while True:
-            main()
+        # while True:
+        main()
     except BaseException:
         sys.exit(0)
 elif __name__ == "G":
