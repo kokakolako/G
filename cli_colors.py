@@ -1,3 +1,6 @@
+#!/bin/env python3
+# CLI colors
+
 class fg():
     def black( text ):
         return "\033[30m" + text + "\033[0m"
