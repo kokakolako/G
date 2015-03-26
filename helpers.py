@@ -25,17 +25,14 @@ class GConsole( code.InteractiveConsole ):
     def save_history( self, history_file ):
         readline.write_history_file( history_file )
 
-
 def is_path( possible_path ):
     """Returns True when the possible_branch is a valid path (POSIX/Windows)
 
     Arguments:
         possible_path: A string which should be checked if it is a valid path
     """
-    if re.match( r"^(([A-Z]\:\\\\)|([\/\\]*[\w]+))([\\\/]*[\w\-\.]*)*$", os.path.expanduser( possible_path ) ):
-        return True
-    else:
-        return False
+    regex = r"^(([A-Z]\:\\\\)|([\/\\]*[\w]+))([\\\/]*[\w\-\.]*)*$"
+    return re.match( regex , os.path.expanduser( possible_path ) )
 
 def is_branch( possible_branch ):
     """Returns True when the possible_branch is a branch
@@ -46,10 +43,10 @@ def is_branch( possible_branch ):
     Arguments:
         possible_branch: A string which should be checked for the branch-syntax of "G"
     """
-    if re.match( r"^\@[\w\-\.\/]*$", possible_branch ):
-        return True
-    else:
-        return False
+    return re.match( r"^\@[\w\-\.\/]*$", possible_branch )
+
+def is_empty( element ):
+    return len( element ) == 0
 
 def error( message ):
     """Prints an error message, stops "G" and raises error code 1
@@ -85,7 +82,10 @@ def git( cmd, operand ):
         operand: Contains the files or branches, that need to be processed.
     """
     try:
-        subprocess.call( [ "git", cmd ] + operand )
+        if type( operand ) == str:
+            subprocess.call( [ "git", cmd ] + operand.split() )
+        else:
+            subprocess.call( [ "git", cmd ] + operand )
     except OSError:
         error( "Git need to be installed to proberly use G" )
 
@@ -115,10 +115,6 @@ SYNTAX COMPARED TO GIT:
 class config():
     """Get the path to the configuration directory or the configuration file
 
-    Typicall paths for the config file / directory:
-        configuration directory:    ~/.config/G
-        configuration file:         ~/.config/G/config.yml
-
     Methods:
         dir: Returns the path to the configuration directory
         file: Returns the path to the configuration file
@@ -130,6 +126,6 @@ class config():
             with open( os.path.expanduser( "~/.config/G/config.yml", "w" ) ) as file:
                 file.close()
     def dir():
-        return os.path.join( os.path.expanduser( "~/.config" ), "G" )
+        return os.path.expanduser( "~/.config/G" )
     def file():
-        return os.path.expanduser( os.path.join( os.path.expanduser( "~/.config" ), "G/config.yml" ) )
+        return os.path.expanduser( "~/.config/G/config.yml" )
