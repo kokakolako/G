@@ -15,6 +15,9 @@ class GConsole( code.InteractiveConsole ):
         code.InteractiveConsole.__init__(self, locals, filename)
         self.init_history( history_file )
     def init_history( self, history_file ):
+        if count_lines( history_file ) == settings.get( "history-length" ):
+            with open( history_file, "w" ) as file:
+                file.close()
         readline.parse_and_bind( "tab: complete" )
         if hasattr( readline, "read_history_file" ):
             try:
@@ -31,8 +34,8 @@ def is_path( possible_path ):
     Arguments:
         possible_path: A string which should be checked if it is a valid path
     """
-    regex = r"^(([A-Z]\:\\\\)|([\/\\]*[\w]+))([\\\/]*[\w\-\.]*)*$"
-    return re.match( regex , os.path.expanduser( possible_path ) )
+    return re.match( r"^(([A-Z]\:\\\\)|([\/\\]*[\w]+))([\\\/]*[\w\-\.]*)*$",
+            os.path.expanduser( possible_path ) )
 
 def is_branch( possible_branch ):
     """Returns True when the possible_branch is a branch
@@ -47,6 +50,18 @@ def is_branch( possible_branch ):
 
 def is_empty( element ):
     return len( element ) == 0
+
+def count_lines( path_to_file ):
+    try:
+        if is_path( path_to_file ):
+            output = subprocess.check_output( [ "wc", "-l" ],
+                    stdin = open( path_to_file, "r" ) )
+            return int( output )
+    except OSError:
+        warning( "You need to have installed 'wc' to run 'G' proberly" )
+        pass
+    except FileNotFoundError:
+        pass
 
 def error( message ):
     """Prints an error message, stops "G" and raises error code 1
@@ -83,9 +98,9 @@ def git( cmd, operand ):
     """
     try:
         if type( operand ) == str:
-            subprocess.call( [ "git", cmd ] + operand.split() )
+            subprocess.check_call( [ "git", cmd ] + operand.split() )
         else:
-            subprocess.call( [ "git", cmd ] + operand )
+            subprocess.check_call( [ "git", cmd ] + operand )
     except OSError:
         error( "Git need to be installed to proberly use G" )
 
