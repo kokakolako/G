@@ -8,9 +8,9 @@ from G import *
 def get_remotes():
     """Get all remotes, from the current repository (the current working directory)"""
     for repository in settings.get( "repositories" ):
-        for key in repository.keys():
-            if os.path.expanduser( key ) == os.path.expanduser( os.getcwd() ):
-                    return repository.get( key ).get( "remotes" )
+        for path, values in repository.keys():
+            if path == os.path.expanduser( os.getcwd() ):
+                    return values.get( "remote" )
 
 def add_remote( name, url ):
     """Add a new remote to the config.yml file
