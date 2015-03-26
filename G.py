@@ -8,6 +8,31 @@ from manage_submodules import *
 from manage_remotes import *
 from cli_colors import *
 
+def main():
+
+    args = get_user_input()
+    operands = get_operands( args )
+    settings = get_settings()
+
+    if not args:
+        usage()
+
+    for operator, files in operands:
+        if not is_empty( files ):
+            if operator == "add" or operator == "reset":
+                git( operator, files )
+            elif operator == "push":
+                if len( files ) == 1:
+                    git( "push", [ "origin", files[0] ] )
+                elif len( files ) == 2:
+                    git( "push", [ files[1], files[0] ] )
+            elif operator == "merge":
+                if len( files ) == 1:
+                    git( "merge", files[0] )
+                elif len( files ) == 2:
+                    git( "checkout",  [ files[0] ]  )
+                    git( "merge", files[1] )
+
 def get_user_input():
     """Returns the arguments in an list which are typed-in by the user
 
@@ -20,8 +45,11 @@ def get_user_input():
     if len( sys.argv ) == 1:
         console = GConsole()
         return console.raw_input( "G " + fg.red( ">" ) + " " ).split()
+    if len( sys.argv ) == 2:
+        if type( sys.argv[1] ) == str:
+            return sys.argv[1].split()
     else:
-        return sys.argv[1].split()
+        return sys.argv
 
 def get_settings():
     """Returns a dictionary which contains all settings from the config.yml file"""
@@ -116,34 +144,6 @@ def get_operands( args ):
             elif is_branch( arg ):
                 operands.get( operator ).append( arg[1:] )
             return operands
-def main():
-
-    args = get_user_input()
-    operator = get_operator( args )
-
-    if not args:
-        usage()
-    else:
-        operands = get_operands( args )
-
-    if not operands.get( "add" ) == []:
-        git( "add", operands.get( "add" ) )
-    elif not operands.get( "reset" ) == []:
-        git( "reset", operands.get( "reset" ) )
-    elif not operands.get( "diff" ) == []:
-        git( "diff", operands.get( "diff" ) )
-
-    if operator == "push":
-        if len( operands.get( "push" ) ) == 1:
-            git( "push", [ "origin", operands.get( "push" )[0] ] )
-        elif len( operands.get( "push" ) ) == 2:
-            git( "push", [ operands.get( "push" )[1], operands.get( "push" )[0] ] )
-    elif operator == "merge":
-        if len( operands.get( "merge" ) ) == 1:
-            git( "merge", operands.get( "merge" )[0] )
-        elif len( operands.get( "merge" ) ) == 2:
-            git( "checkout",  [ operands.get( "merge" )[0] ]  )
-            git( "merge", operands.get( "merge" )[1] )
 
 if __name__ == "__main__":
     """Start main() function and handle errors
@@ -157,9 +157,9 @@ if __name__ == "__main__":
     command-line program.
     """
     try:
-        # while True:
-        main()
+        while True:
+            main()
     except BaseException:
         sys.exit(0)
-elif __name__ == "G":
+else:
     settings = get_settings()
