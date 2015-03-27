@@ -5,31 +5,32 @@ import os, re, subprocess, atexit, code, readline
 
 class config():
     """Get the path to the configuration directory or the configuration file
+    If the config dir does not exist, it will be created. Also a history and
+    a config file will be created when necessary.
 
     Methods:
         dir: Path to the configuration directory
         file: Path to the configuration file
         history: Path to the history file
     """
-    def __init__(  ):
-        config_dir = os.path.join( os.path.expanduser( "~" ), "config", "G" )
-        config_file = os.path.join( config_dir, "config.yml" )
-        history_file = os.path.join( config_dir, "history" )
+    def dir():
+        config_dir = os.path.join( os.path.expanduser( "~" ), ".config", "G" )
         if not os.path.exists( config_dir ):
             os.makedirs ( config_dir, exists_ok = True )
+        return config_dir
+    def file():
+        config_file = os.path.join( os.path.expanduser( "~" ), ".config", "G", "config.yml" )
         if not os.path.isfile( config_file ):
             with open( config_file, "w" ) as file:
                 file.close()
+        return config_file
+    def history():
+        history_file = os.path.join( os.path.expanduser( "~" ), ".config", "G", "history" )
         if not os.path.isfile( history_file ):
             if count_lines( history_file ) == settings.get( "history-length" ):
                 with open( history_file, "w" ) as file:
                     file.close()
-    def dir():
-        return os.path.join( os.path.expanduser( "~" ), "config", "G" )
-    def file():
-        return os.path.join( os.path.expanduser( "~" ), "config", "G", "config.yml" )
-    def history():
-        return os.path.join( os.path.expanduser( "~" ), "config", "G", "history" )
+        return history_file
 
 class GConsole( code.InteractiveConsole ):
     """Interactive Console with history and emacs short-cuts
