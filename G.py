@@ -17,7 +17,7 @@ def main():
     if not args:
         usage()
 
-    for operator, files in operands:
+    for operator, files in operands.items():
         if not is_empty( files ):
             if operator == "add" or operator == "reset":
                 git( operator, files )
