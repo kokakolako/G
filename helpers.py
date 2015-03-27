@@ -14,23 +14,23 @@ class config():
         history: Path to the history file
     """
     def dir():
-        config_dir = os.path.join( os.path.expanduser( "~" ), ".config", "G" )
-        if not os.path.exists( config_dir ):
-            os.makedirs ( config_dir, exists_ok = True )
-        return config_dir
+        confdir = os.path.join( os.path.expanduser( "~" ), ".config", "G" )
+        if not os.path.exists( confdir ):
+            os.makedirs ( confdir, exists_ok = True )
+        return confdir
     def file():
-        config_file = os.path.join( os.path.expanduser( "~" ), ".config", "G", "config.yml" )
-        if not os.path.isfile( config_file ):
-            with open( config_file, "w" ) as file:
+        conffile = os.path.join( os.path.expanduser( "~" ), ".config", "G", "config.yml" )
+        if not os.path.isfile( conffile ):
+            with open( conffile, "w" ) as file:
                 file.close()
-        return config_file
+        return conffile
     def history():
-        history_file = os.path.join( os.path.expanduser( "~" ), ".config", "G", "history" )
-        if not os.path.isfile( history_file ):
-            if count_lines( history_file ) == settings.get( "history-length" ):
-                with open( history_file, "w" ) as file:
+        histfile = os.path.join( os.path.expanduser( "~" ), ".config", "G", "history" )
+        if not os.path.isfile( histfile ):
+            if count_lines( histfile ) == settings.get( "history-length" ):
+                with open( histfile, "w" ) as file:
                     file.close()
-        return history_file
+        return histfile
 
 class GConsole( code.InteractiveConsole ):
     """Interactive Console with history and emacs short-cuts
@@ -39,20 +39,20 @@ class GConsole( code.InteractiveConsole ):
     support a history, the history file is typically located at the following path:
         ~/.config/G/history
     """
-    def __init__( self, locals = None, filename = "<console>" ):
-        history_file = config.history()
+    def __init__( self, locals = None, filename = "<console>",
+            histfile = config.history() ):
         code.InteractiveConsole.__init__(self, locals, filename)
-        self.init_history( history_file )
-    def init_history( self, history_file ):
+        self.init_history( histfile )
+    def init_history( self, histfile ):
         readline.parse_and_bind( "tab: complete" )
         if hasattr( readline, "read_history_file" ):
             try:
-                readline.read_history_file( history_file )
+                readline.read_history_file( histfile )
             except FileNotFoundError:
                 pass
-            atexit.register( self.save_history, history_file )
-    def save_history( self, history_file ):
-        readline.write_history_file( history_file )
+            atexit.register( self.save_history, histfile )
+    def save_history( self, histfile ):
+        readline.write_history_file( histfile )
 
 def emend_path( path_to_emend ):
     """This function convert a string to an OS independent path"""
