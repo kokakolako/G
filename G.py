@@ -65,8 +65,8 @@ def save_settings( settings ):
     This function saves settings via pyYAML in the config.yml file
 
     Warning:
-        This function can overwrite the config.yml file, when values are not
-        appended to the settings dictionary
+        This function can overwrite the config.yml file, when values are not appended to the
+        settings dictionary
 
     Arguments:
         settings: Settings that should be written to the config.yml file
@@ -80,8 +80,8 @@ def save_settings( settings ):
 def get_operator( args ):
     """Get the operator from the Arguments
 
-    The operation which should be processed is defined by an operator.
-    Possible operators are: "+", "-", "~", "=", "→", ">"
+    The operation which should be processed is defined by an operator. Possible operators
+    are: "+", "-", "~", "=", "→", ">"
 
     Arguments:
         args: The arguments that need to be processed to get the operator
@@ -148,13 +148,12 @@ def get_operands( args ):
 if __name__ == "__main__":
     """Start main() function and handle errors
 
-    When the python file is executed this conditional starts the main() function
-    The main() function loops as long, as user stops G via <C-c> or <C-d>.
-    When <C-c> or <C-d> is pressed, to stop the execution, "G" raises no error code.
+    When the python file is executed this conditional starts the main() function The main() function
+    loops as long, as user stops G via <C-c> or <C-d>.  When <C-c> or <C-d> is pressed, to stop the
+    execution, "G" raises no error code.
 
-    When the python file is imported as a package, the settings variable is set.
-    This behaviour makes it possible to use "G" a an python interface to the "Git"
-    command-line program.
+    When the python file is imported as a package, the settings variable is set. This behaviour makes
+    it possible to use "G" a an python module.
     """
     try:
         while True:
