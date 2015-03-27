@@ -32,6 +32,8 @@ def main():
                 elif len( files ) == 2:
                     git( "checkout",  [ files[0] ]  )
                     git( "merge", files[1] )
+            elif operator == "cd":
+                os.chdir( os.path.expanduser( files[0] ) )
 
 def get_user_input():
     """Returns the arguments in an list which are typed-in by the user
@@ -78,6 +80,10 @@ def get_operator( args ):
     Arguments:
         args: The arguments that need to be processed to get the operator
     """
+
+    if type( args ) == str:
+        args = [ args ]
+
     for arg in args:
         index = args.index( arg )
         if index >= 0:
@@ -87,11 +93,14 @@ def get_operator( args ):
                 return "push"
             elif arg == ">":
                 return "merge"
+            elif arg == "cd":
+                return "cd"
         if index == 0:
             if arg == "+":
                 return "add"
             elif arg == "-":
                 return "reset"
+    return False
 
 def get_operands( args ):
     """Returns all operands as an dictionary
@@ -121,8 +130,8 @@ def get_operands( args ):
         if index < length:
             if index >= 0:
                 if index == 0:
-                    operands = { "add": [], "reset": [], "merge": [], "push": [] }
-                if is_path( arg ):
+                    operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [] }
+                if is_path( arg ) and not get_operator( arg ):
                     operands.get( operator ).append( arg )
                 elif is_branch( arg ):
                     operands.get( operator ).append( arg[1:] )
