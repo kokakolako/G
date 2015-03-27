@@ -53,29 +53,21 @@ def get_user_input():
 
 def get_settings():
     """Returns a dictionary which contains all settings from the config.yml file"""
-    config_file = config.file()
-    file = os.path.expanduser( config_file )
-    if os.path.exists( file ):
-        with open( file , "r" ) as yaml_config:
-            return yaml.load( yaml_config )
+    with open( config.file() , "r" ) as yaml_config:
+        return yaml.load( yaml_config )
 
 def save_settings( settings ):
-    """Store settings in the config.yml file
+    """Store settings via pyYAML in the config file
 
-    This function saves settings via pyYAML in the config.yml file
-
-    Warning:
-        This function can overwrite the config.yml file, when values are not appended to the
+    __Warning__:
+        This function can overwrite the config.yml file, when values are not **appended** to the
         settings dictionary
 
     Arguments:
         settings: Settings that should be written to the config.yml file
     """
-    config = config.file
-    file = os.path.expanduser( config )
-    if os.path.exists( file ):
-        with open( file , "w" ) as yaml_config:
-            yaml_config.write( yaml.dump( settings, default_flow_style = False ) )
+    with open( config.file() , "w" ) as yaml_config:
+        yaml_config.write( yaml.dump( settings, default_flow_style = False ) )
 
 def get_operator( args ):
     """Get the operator from the Arguments

@@ -3,6 +3,34 @@
 
 import os, re, subprocess, atexit, code, readline
 
+class config():
+    """Get the path to the configuration directory or the configuration file
+
+    Methods:
+        dir: Path to the configuration directory
+        file: Path to the configuration file
+        history: Path to the history file
+    """
+    def __init__(  ):
+        config_dir = os.path.join( os.path.expanduser( "~" ), "config", "G" )
+        config_file = os.path.join( config_dir, "config.yml" )
+        history_file = os.path.join( config_dir, "history" )
+        if not os.path.exists( config_dir ):
+            os.makedirs ( config_dir, exists_ok = True )
+        if not os.path.isfile( config_file ):
+            with open( config_file, "w" ) as file:
+                file.close()
+        if not os.path.isfile( history_file ):
+            if count_lines( history_file ) == settings.get( "history-length" ):
+                with open( history_file, "w" ) as file:
+                    file.close()
+    def dir():
+        return os.path.join( os.path.expanduser( "~" ), "config", "G" )
+    def file():
+        return os.path.join( os.path.expanduser( "~" ), "config", "G", "config.yml" )
+    def history():
+        return os.path.join( os.path.expanduser( "~" ), "config", "G", "history" )
+
 class GConsole( code.InteractiveConsole ):
     """Interactive Console with history and emacs short-cuts
 
@@ -11,13 +39,10 @@ class GConsole( code.InteractiveConsole ):
         ~/.config/G/history
     """
     def __init__( self, locals = None, filename = "<console>" ):
-        history_file = os.path.join( config.dir(), "history" )
+        history_file = config.history()
         code.InteractiveConsole.__init__(self, locals, filename)
         self.init_history( history_file )
     def init_history( self, history_file ):
-        if count_lines( history_file ) == settings.get( "history-length" ):
-            with open( history_file, "w" ) as file:
-                file.close()
         readline.parse_and_bind( "tab: complete" )
         if hasattr( readline, "read_history_file" ):
             try:
@@ -27,6 +52,11 @@ class GConsole( code.InteractiveConsole ):
             atexit.register( self.save_history, history_file )
     def save_history( self, history_file ):
         readline.write_history_file( history_file )
+
+def emend_path( path_to_emend ):
+    """This function convert a string to an OS independent path"""
+    path = re.split( r"]\\\/]", path_to_emend )
+    return os.path.join( *path )
 
 def is_path( possible_path ):
     """Returns True when the possible_branch is a valid path (POSIX/Windows)
@@ -126,21 +156,3 @@ SYNTAX COMPARED TO GIT:
 +------------------------------------+--------------------------+---------------------------+\
 """
     print( usage )
-
-class config():
-    """Get the path to the configuration directory or the configuration file
-
-    Methods:
-        dir: Returns the path to the configuration directory
-        file: Returns the path to the configuration file
-    """
-    def __init__(  ):
-        if not os.path.exists( os.path.join( os.path.expanduser( "~/.config" ), "G" )):
-            os.mkdir( os.path.join( os.path.expanduser( "~/.config" ), "G" ) )
-        if not os.path.isfile( os.path.expanduser( os.path.expanduser( "~/.config" ), "~/.config/G/config.yml" ) ):
-            with open( os.path.expanduser( "~/.config/G/config.yml", "w" ) ) as file:
-                file.close()
-    def dir():
-        return os.path.expanduser( "~/.config/G" )
-    def file():
-        return os.path.expanduser( "~/.config/G/config.yml" )
