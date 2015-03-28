@@ -3,6 +3,8 @@
 
 import os, re, subprocess, atexit, code, readline
 
+from cli_colors import fg
+
 class config():
     """Get the path to the configuration directory or the configuration file
     If the config dir does not exist, it will be created. Also a history and
@@ -56,8 +58,11 @@ class GConsole( code.InteractiveConsole ):
 
 def emend_path( path_to_emend ):
     """This function convert a string to an OS independent path"""
-    path = re.split( r"]\\\/]", path_to_emend )
-    return os.path.join( *path )
+    path = re.split( r"[\\\/]", os.path.expanduser( path_to_emend ) )
+    if re.match( r"([\/\\]|[^~])", path_to_emend[0:1] ):
+        return path.insert( 0, os.sep )
+    else:
+        return os.getcwd() + os.sep + os.path.join( *path )
 
 def is_path( possible_path ):
     """Returns True when the possible_branch is a valid path (POSIX/Windows)
@@ -65,8 +70,11 @@ def is_path( possible_path ):
     Arguments:
         possible_path: A string which should be checked if it is a valid path
     """
-    return re.match( r"^(([A-Z]\:\\\\)|([\/\\]*[\w]+))([\\\/]*[\w\-\.]*)*$",
-            os.path.expanduser( possible_path ) )
+    if re.match( r"^(([A-Z]\:\\\\)|([\/\\]*[\w]+))([\\\/]*[\w\-\.]*)*$",
+            os.path.expanduser( possible_path ) ):
+        return True
+    else:
+        return False
 
 def is_branch( possible_branch ):
     """Returns True when the possible_branch is a branch
@@ -77,7 +85,10 @@ def is_branch( possible_branch ):
     Arguments:
         possible_branch: A string which should be checked for the branch-syntax of "G"
     """
-    return re.match( r"^\@[\w\-\.\/]*$", possible_branch )
+    if re.match( r"^\@[\w\-\.\/]*$", possible_branch ):
+        return True
+    else:
+        return False
 
 def is_empty( element ):
     return len( element ) == 0
@@ -100,7 +111,7 @@ def error( message ):
     Arguments:
         message: The message which should be displayed to the user
     """
-    print( fg.red( message ) )
+    print( fg.red( "Error: " + message ) )
     sys.exit( 1 )
 
 def warning( message ):
