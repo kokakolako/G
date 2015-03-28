@@ -22,36 +22,43 @@
 import os, re, sys, yaml
 
 from helpers import *
-from manage_submodules import *
-from manage_remotes import *
 from cli_colors import *
 
 def main():
 
     args = get_user_input()
-    operands = get_operands( args )
     settings = get_settings()
 
     if not args:
         usage()
-
-    for operator, files in operands.items():
-        if not is_empty( files ):
-            if operator == "add" or operator == "reset":
-                git( operator, files )
-            elif operator == "push":
-                if len( files ) == 1:
-                    git( "push", [ "origin", files[0] ] )
-                elif len( files ) == 2:
-                    git( "push", [ files[1], files[0] ] )
-            elif operator == "merge":
-                if len( files ) == 1:
-                    git( "merge", files[0] )
-                elif len( files ) == 2:
-                    git( "checkout",  [ files[0] ]  )
-                    git( "merge", files[1] )
-            elif operator == "cd":
-                os.chdir( os.path.expanduser( files[0] ) )
+    elif len( args ) == 1:
+        arg = args[0]
+        if arg == "@remotes":
+            show_remotes()
+        elif arg == "@submodules":
+            show_submodules()
+    else:
+        operands = get_operands( args )
+        for operator, parameter in operands.items():
+            if not is_empty( parameter ):
+                if operator == "add" or operator == "reset":
+                    git( operator, parameter )
+                elif operator == "push":
+                    if len( parameter ) == 1:
+                        git( "push", [ "origin", parameter[0][1:] ] )
+                    elif len( parameter ) == 2:
+                        git( "push", [ parameter[1][1:], parameter[0][1:] ] )
+                elif operator == "merge":
+                    if len( parameter ) == 1:
+                        git( "merge", parameter[0][1:] )
+                    elif len( parameter ) == 2:
+                        git( "checkout",  [ parameter[0][1:] ]  )
+                        git( "merge", parameter[1][1:] )
+                elif operator == "cd":
+                    os.chdir( os.path.expanduser( parameter[0] ) )
+                elif operator == "set":
+                    if is_submodule( parameter[0] ):
+                        add_submodule( parameter[0][1:], parameter[1] )
 
 def get_user_input():
     """Returns the arguments in an list which are typed-in by the user
@@ -141,6 +148,7 @@ def get_operands( args ):
     Arguments:
         args: The arguments that need to be checked for operands
     """
+    operands = {}
     length = len( args ) - 1
     operator = get_operator( args )
     for arg in args:
@@ -148,11 +156,10 @@ def get_operands( args ):
         if index < length:
             if index >= 0:
                 if index == 0:
-                    operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [] }
-                if is_path( arg ) and not get_operator( arg ):
+                    operands = { "add": [], "reset": [], "merge": [],
+                            "push": [], "cd": [], "set": [] }
+                if not get_operator( arg ):
                     operands.get( operator ).append( arg )
-                elif is_branch( arg ):
-                    operands.get( operator ).append( arg[1:] )
             elif index > 0:
                 if arg == "+" or arg == "-" or arg == "~":
                     del args[0:index]
@@ -160,9 +167,125 @@ def get_operands( args ):
         elif index == length:
             if is_path( arg ):
                 operands.get( operator ).append( arg )
-            elif is_branch( arg ):
-                operands.get( operator ).append( arg[1:] )
+            elif is_branch( arg ) or is_submodule( arg ):
+                operands.get( operator ).append( arg )
             return operands
+
+def get_submodules( settings = get_settings() ):
+    """Returns a list of all submodules """
+    submodules = settings.get( "submodules" )
+    if not submodules:
+        return False
+    else:
+        return submodules
+
+def add_submodule( path, ignore_dirty = True ):
+    """Add a submodule to the list of submodules in the config.yml file
+
+    Arguments:
+        path: The path of the submodule
+        ignore_dirty: If the changes to the submodules should NOT be ignored, then set this to False
+    """
+    try:
+        ignored_submodules = [ os.path.expanduser( module ) for module in settings.get( "ignore-submodules" ) ]
+        if os.path.expanduser( path ) in ignored_submodules:
+            error( "You want to add a ignored submodule" )
+    except:
+        pass
+    if not settings.get( "submodules" ):
+        settings["submodules"] = []
+    submodules = settings.get( "submodules" )
+    try:
+        if not path in [ list( submodule.keys() )[0] for submodule in submodules ]:
+            submodules.append( { path: { "ignore_dirty": ignore_dirty } } )
+            save_settings( settings )
+        else:
+            settings["submodules"] = None
+            warning( "You added the submodule with the path \"" + path + "\" already to G" )
+    except TypeError:
+        pass
+
+def show_submodules():
+    if get_submodules():
+        print( fg.blue( "Submodules:" ) )
+        for submodule in get_submodules():
+            for path, values in submodule.items():
+                print( "  - " + path )
+    else:
+        warning( "You have not added submodules to the config file \"" + config.file() + "\"" )
+
+def find_submodules( dir = os.path.expanduser( "~" ) ):
+    """Search for submodules
+
+    Arguments:
+        dir: The directory from which the function searches for submodules
+    """
+    ignored_submodules = settings.get( "ignore-submodules" )
+    if get_submodules():
+        submodules = [ submodule for submodule in settings.get( "submodules" ) ]
+    for dirpath, dirnames, filenames in os.walk( dir ):
+        for file in filenames:
+            if file == ".gitmodules":
+                submodules.append( os.path.expanduser( os.path.join( dirpath, file ) ) )
+    for submodule in submodules:
+        if submodule in ignored_submodules:
+            submodules.remove( submodule )
+    return submodules
+
+def ignore_submodule( path_to_submodule ):
+    """Ignore a specific path to a submodule which will be ignored by "G"
+
+    Arguments:
+        path_to_submodule: A path to a submodule which should be ignored by "G"
+    """
+    ignored_submodules = [ os.path.expanduser( module ) for module in settings.get( "ignore-submodules" ) ]
+    if not path_to_submodule in ignored_submodules:
+        ignored_submodules.append( os.expanduser( path_to_submodule ) )
+    save_settings( settings )
+
+def get_remotes( settings = get_settings() ):
+    """Get all remotes, from the current repository (the current working directory)"""
+    for repository in settings.get( "repositories" ):
+        for path, values in repository.items():
+            if os.path.expanduser( path ) == os.getcwd():
+                return values.get( "remotes" )
+            else:
+                return False
+
+def show_remotes():
+    if get_remotes():
+        print( fg.blue( "Remotes:" ) )
+        for remote in get_remotes():
+            for name, url in remote.items():
+                print( "  - " + name + ": " + url )
+    else:
+        warning( "Your repository does not have any remotes, or you have not opened a repository" )
+
+def add_remote( name, url ):
+    """Add a new remote to the config.yml file
+
+    When no remotes are defined in the current repository into the config.yml file.
+    This function adds a new remote to the current repository. The current working
+    directory is used as the name for the current repository.
+
+    Arguments:
+        name: The name for the remote (i.e. origin)
+        url: The url to the remote repository (i.e. git@github.com:kokakolako/G.git)
+    """
+    cwd = os.getcwd()
+    remotes = get_remotes()
+    repositories = settings.get( "repositories" )
+    if not remotes:
+        repositories.append( { cwd: { "remotes": [ { name: url }] } } )
+    else:
+        if not name in [ list( remote.keys() )[0] for remote in remotes ]:
+            remotes.append( { name: url } )
+    for repository in repositories:
+        for path, values in repository.items():
+            if os.path.expanduser( path ) == cwd:
+                for name, url in remotes:
+                        values["remotes"] = remotes
+    save_settings( settings )
 
 if __name__ == "__main__":
     """Start main() function and handle errors
