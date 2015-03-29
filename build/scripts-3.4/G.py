@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!/usr/bin/python3.4
 
 # G -- An interactive shell for Git
 # -------------------------------------------------------------------------

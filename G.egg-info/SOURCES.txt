@@ -1,0 +1,9 @@
+G.py
+cli_colors.py
+helpers.py
+setup.py
+G.egg-info/PKG-INFO
+G.egg-info/SOURCES.txt
+G.egg-info/dependency_links.txt
+G.egg-info/pbr.json
+G.egg-info/top_level.txt
