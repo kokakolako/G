@@ -158,8 +158,7 @@ def get_operands( args ):
         if index < length:
             if index >= 0:
                 if index == 0:
-                    operands = { "add": [], "reset": [], "merge": [],
-                            "push": [], "cd": [], "set": [] }
+                    operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
                 if not get_operator( arg ):
                     operands.get( operator ).append( arg )
             elif index > 0:
@@ -167,11 +166,7 @@ def get_operands( args ):
                     del args[0:index]
                     return get_operands( args )
         elif index == length:
-            if is_path( arg ):
-                operands.get( operator ).append( arg )
-            elif is_branch( arg ) or is_submodule( arg ):
-                operands.get( operator ).append( arg )
-            return operands
+            return operands.get( operator ).append( arg )
 
 def get_submodules( settings = get_settings() ):
     """Returns a list of all submodules """

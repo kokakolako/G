@@ -10,6 +10,6 @@ setup(
     author_email = "niklas.koehler@posteo.de",
     description = "An interactive shell for Git",
     license = "GNU General Public License Version 2",
-    py_modules = [ "G" ],
-    scripts = [ "G.py", "helpers.py", "cli_colors.py" ]
+    package_dir = { "": "src" },
+    py_modules = [ "G" ]
 )

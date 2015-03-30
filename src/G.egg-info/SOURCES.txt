@@ -1,0 +1,7 @@
+setup.py
+src/G.py
+src/G.egg-info/PKG-INFO
+src/G.egg-info/SOURCES.txt
+src/G.egg-info/dependency_links.txt
+src/G.egg-info/pbr.json
+src/G.egg-info/top_level.txt
