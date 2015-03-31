@@ -19,15 +19,25 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import os, re, sys, yaml
+import os, sys
 
-from helpers import *
-from cli_colors import *
+from G.config import history_file, config_file, config_dir
+from G.settings import get_settings, save_settings
+from G.helpers import *
+from G.messages import error, warning, success, usage
+from G.cli_colors import fg, bg
+from G.submodules import get_submodules, show_submodules, find_submodules, add_submodule
+from G.remotes import get_remotes, show_remotes, add_remote
 
 def main():
 
     args = get_user_input()
     settings = get_settings()
+
+    try:
+        operands = get_operands( args )
+    except:
+        operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
 
     if not args:
         usage()
@@ -37,11 +47,7 @@ def main():
             show_remotes()
         elif arg == "@submodules":
             show_submodules()
-    else:
-        try:
-            operands = get_operands( args )
-        except:
-            operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
+
         for operator, parameter in operands.items():
             if not is_empty( parameter ):
                 if operator == "add" or operator == "reset":
@@ -80,24 +86,6 @@ def get_user_input():
             return sys.argv[1].split()
     else:
         return sys.argv
-
-def get_settings():
-    """Returns a dictionary which contains all settings from the config.yml file"""
-    with open( config.file() , "r" ) as yaml_config:
-        return yaml.load( yaml_config )
-
-def save_settings( settings ):
-    """Store settings via pyYAML in the config file
-
-    __Warning__:
-        This function can overwrite the config.yml file, when values are not **appended** to the
-        settings dictionary
-
-    Arguments:
-        settings: Settings that should be written to the config.yml file
-    """
-    with open( config.file() , "w" ) as yaml_config:
-        yaml_config.write( yaml.dump( settings, default_flow_style = False ) )
 
 def get_operator( args ):
     """Get the operator from the Arguments
@@ -153,12 +141,12 @@ def get_operands( args ):
     """
     length = len( args ) - 1
     operator = get_operator( args )
+    if not operands:
+        operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
     for arg in args:
         index = args.index( arg )
         if index < length:
             if index >= 0:
-                if index == 0:
-                    operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
                 if not get_operator( arg ):
                     operands.get( operator ).append( arg )
             elif index > 0:
@@ -167,122 +155,6 @@ def get_operands( args ):
                     return get_operands( args )
         elif index == length:
             return operands.get( operator ).append( arg )
-
-def get_submodules( settings = get_settings() ):
-    """Returns a list of all submodules """
-    submodules = settings.get( "submodules" )
-    if not submodules:
-        return False
-    else:
-        return submodules
-
-def add_submodule( path, ignore_dirty = True ):
-    """Add a submodule to the list of submodules in the config.yml file
-
-    Arguments:
-        path: The path of the submodule
-        ignore_dirty: If the changes to the submodules should NOT be ignored, then set this to False
-    """
-    try:
-        ignored_submodules = [ os.path.expanduser( module ) for module in settings.get( "ignore-submodules" ) ]
-        if os.path.expanduser( path ) in ignored_submodules:
-            error( "You want to add a ignored submodule" )
-    except:
-        pass
-    if not settings.get( "submodules" ):
-        settings["submodules"] = []
-    submodules = settings.get( "submodules" )
-    try:
-        if not path in [ list( submodule.keys() )[0] for submodule in submodules ]:
-            submodules.append( { path: { "ignore_dirty": ignore_dirty } } )
-            save_settings( settings )
-        else:
-            settings["submodules"] = None
-            warning( "You added the submodule with the path \"" + path + "\" already to G" )
-    except TypeError:
-        pass
-
-def show_submodules():
-    if get_submodules():
-        print( fg.blue( "Submodules:" ) )
-        for submodule in get_submodules():
-            for path, values in submodule.items():
-                print( "  - " + path )
-    else:
-        warning( "You have not added submodules to the config file \"" + config.file() + "\"" )
-
-def find_submodules( dir = os.path.expanduser( "~" ) ):
-    """Search for submodules
-
-    Arguments:
-        dir: The directory from which the function searches for submodules
-    """
-    ignored_submodules = settings.get( "ignore-submodules" )
-    if get_submodules():
-        submodules = [ submodule for submodule in settings.get( "submodules" ) ]
-    for dirpath, dirnames, filenames in os.walk( dir ):
-        for file in filenames:
-            if file == ".gitmodules":
-                submodules.append( os.path.expanduser( os.path.join( dirpath, file ) ) )
-    for submodule in submodules:
-        if submodule in ignored_submodules:
-            submodules.remove( submodule )
-    return submodules
-
-def ignore_submodule( path_to_submodule ):
-    """Ignore a specific path to a submodule which will be ignored by "G"
-
-    Arguments:
-        path_to_submodule: A path to a submodule which should be ignored by "G"
-    """
-    ignored_submodules = [ os.path.expanduser( module ) for module in settings.get( "ignore-submodules" ) ]
-    if not path_to_submodule in ignored_submodules:
-        ignored_submodules.append( os.expanduser( path_to_submodule ) )
-    save_settings( settings )
-
-def get_remotes( settings = get_settings() ):
-    """Get all remotes, from the current repository (the current working directory)"""
-    for repository in settings.get( "repositories" ):
-        for path, values in repository.items():
-            if os.path.expanduser( path ) == os.getcwd():
-                return values.get( "remotes" )
-            else:
-                return False
-
-def show_remotes():
-    if get_remotes():
-        print( fg.blue( "Remotes:" ) )
-        for remote in get_remotes():
-            for name, url in remote.items():
-                print( "  - " + name + ": " + url )
-    else:
-        warning( "Your repository does not have any remotes, or you have not opened a repository" )
-
-def add_remote( name, url ):
-    """Add a new remote to the config.yml file
-
-    When no remotes are defined in the current repository into the config.yml file.
-    This function adds a new remote to the current repository. The current working
-    directory is used as the name for the current repository.
-
-    Arguments:
-        name: The name for the remote (i.e. origin)
-        url: The url to the remote repository (i.e. git@github.com:kokakolako/G.git)
-    """
-    cwd = os.getcwd()
-    remotes = get_remotes()
-    repositories = settings.get( "repositories" )
-    if not remotes:
-        repositories.append( { cwd: { "remotes": [ { name: url }] } } )
-    else:
-        if not name in [ list( remote.keys() )[0] for remote in remotes ]:
-            remotes.append( { name: url } )
-    for repository in repositories:
-        for path, values in repository.items():
-            if os.path.expanduser( path ) == cwd:
-                for name, url in remotes:
-                        values["remotes"] = remotes
-    save_settings( settings )
 
 if __name__ == "__main__":
     """Start main() function and handle errors

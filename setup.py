@@ -3,13 +3,16 @@
 import os
 from setuptools import setup
 
+from G.config import version
+
 setup(
     name = "G",
-    version = "0.0.1",
+    version = version(),
     author = "Niklas Köhler",
     author_email = "niklas.koehler@posteo.de",
     description = "An interactive shell for Git",
-    license = "GNU General Public License Version 2",
-    package_dir = { "": "src" },
-    py_modules = [ "G" ]
+    license = "LICENSE.txt",
+    packages = [ "G" ],
+    include_package_data = True,
+    scripts = [ "G.py" ]
 )

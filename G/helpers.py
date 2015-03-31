@@ -3,36 +3,7 @@
 
 import os, re, subprocess, atexit, code, readline
 
-from cli_colors import fg
-
-class config():
-    """Get the path to the configuration directory or the configuration file
-    If the config dir does not exist, it will be created. Also a history and
-    a config file will be created when necessary.
-
-    Methods:
-        dir: Path to the configuration directory
-        file: Path to the configuration file
-        history: Path to the history file
-    """
-    def dir():
-        confdir = os.path.join( os.path.expanduser( "~" ), ".config", "G" )
-        if not os.path.exists( confdir ):
-            os.makedirs ( confdir, exists_ok = True )
-        return confdir
-    def file():
-        conffile = os.path.join( os.path.expanduser( "~" ), ".config", "G", "config.yml" )
-        if not os.path.isfile( conffile ):
-            with open( conffile, "w" ) as file:
-                file.close()
-        return conffile
-    def history():
-        histfile = os.path.join( os.path.expanduser( "~" ), ".config", "G", "history" )
-        if not os.path.isfile( histfile ):
-            if count_lines( histfile ) == settings.get( "history-length" ):
-                with open( histfile, "w" ) as file:
-                    file.close()
-        return histfile
+from config import history_file
 
 class GConsole( code.InteractiveConsole ):
     """Interactive Console with history and emacs short-cuts
@@ -42,7 +13,7 @@ class GConsole( code.InteractiveConsole ):
         ~/.config/G/history
     """
     def __init__( self, locals = None, filename = "<console>",
-            histfile = config.history() ):
+            histfile = history_file() ):
         code.InteractiveConsole.__init__(self, locals, filename)
         self.init_history( histfile )
     def init_history( self, histfile ):
@@ -105,31 +76,6 @@ def count_lines( path_to_file ):
     except FileNotFoundError:
         pass
 
-def error( message ):
-    """Prints an error message, stops "G" and raises error code 1
-
-    Arguments:
-        message: The message which should be displayed to the user
-    """
-    print( fg.red( "Error: " + message ) )
-    sys.exit( 1 )
-
-def warning( message ):
-    """Prints an warning
-
-    Arguments:
-        message: The message which should be displayed to the user
-    """
-    print( fg.yellow( message ) )
-
-def success( message ):
-    """Prints an succes message
-
-    Arguments:
-        message: The message which should be displayed to the user
-    """
-    print( fg.green( message ) )
-
 def git( cmd, operand ):
     """Start a git command as a subprocess
 
@@ -145,26 +91,3 @@ def git( cmd, operand ):
             subprocess.check_call( [ "git", cmd ] + operand )
     except OSError:
         error( "Git need to be installed to proberly use G" )
-
-def usage():
-    """Display usage information
-
-    When the user does not insert an argument, the usage information are displayed.
-    """
-    usage = """\
-DESCRIPTION:
-
-G is an interface to simplify the work with the git command line tool.
-
-SYNTAX COMPARED TO GIT:
-
-+------------------------------------+--------------------------+---------------------------+
-| Task                               | Git syntax               | G Syntax                  |
-+------------------------------------+--------------------------+---------------------------+
-| Add files to the index             | git add file1 file2      | + file1 file2             |
-| Remove files from the index        | git reset file1 file2    | - file1 file2             |
-| Push branch to a remote repository | git push origin master   | @master -> @origin        |
-| Merge branches                     | git merge feature-branch | @feature-branch > @master |
-+------------------------------------+--------------------------+---------------------------+\
-"""
-    print( usage )
