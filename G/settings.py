@@ -3,7 +3,7 @@
 
 import yaml
 
-from config import config_file
+from G.config import config_file
 
 def get_settings():
     """Returns a dictionary which contains all settings from the config.yml file"""

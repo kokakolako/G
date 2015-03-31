@@ -3,7 +3,7 @@
 
 import os, re, subprocess, atexit, code, readline
 
-from config import history_file
+from G.config import history_file
 
 class GConsole( code.InteractiveConsole ):
     """Interactive Console with history and emacs short-cuts
