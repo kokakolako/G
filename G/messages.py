@@ -1,6 +1,7 @@
 #!/bin/env python3
 # Messages
 
+from G.cli_colors import fg
 import sys
 
 def error( message ):

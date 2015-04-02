@@ -64,11 +64,11 @@ def is_branch( possible_branch ):
 def is_empty( element ):
     return len( element ) == 0
 
-def count_lines( path_to_file ):
+def count_lines( file ):
     try:
-        if is_path( path_to_file ):
+        if os.path.isfile( file ):
             output = subprocess.check_output( [ "wc", "-l" ],
-                    stdin = open( path_to_file, "r" ) )
+                    stdin = open( file, "r" ) )
             return int( output )
     except OSError:
         warning( "You need to have installed 'wc' to run 'G' proberly" )

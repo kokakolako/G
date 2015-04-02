@@ -5,6 +5,7 @@ import os
 
 from G.cli_colors import fg
 from G.settings import get_settings
+from G.messages import warning
 
 def get_remotes( settings = get_settings() ):
     """Get all remotes, from the current repository (the current working directory)"""

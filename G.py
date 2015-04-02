@@ -29,7 +29,7 @@ from G.cli_colors import fg, bg
 from G.submodules import get_submodules, show_submodules, find_submodules, add_submodule
 from G.remotes import get_remotes, show_remotes, add_remote
 
-def main( args ):
+dbMefmain( args ):
 
     settings = get_settings()
 
@@ -166,17 +166,24 @@ if __name__ == "__main__":
     it possible to use "G" a an python module.
     """
     if len( sys.argv ) > 1:
+        # Start G in debug mode
         if sys.argv[1] == "-d" or sys.argv[1] == "--debug":
             args = sys.argv
             args.remove( args[1] )
+            # Check if the history is longer than "history-length"
+            # The initialization of G would be otherwise VERY slow
+            history_file()
             main( get_user_input( args ) )
             sys.exit( 0 )
     else:
-        try:
-            args = get_user_input()
-            while True:
+        while True:
+            try:
+                # Check if the history is longer than "history-length"
+                # The initialization of G would be otherwise VERY slow
+                history_file()
+                args = get_user_input()
                 main( args )
-        except BaseException:
-            sys.exit( 0 )
+            except BaseException:
+                sys.exit( 0 )
 else:
     settings = get_settings()
