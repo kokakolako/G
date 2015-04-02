@@ -29,15 +29,9 @@ from G.cli_colors import fg, bg
 from G.submodules import get_submodules, show_submodules, find_submodules, add_submodule
 from G.remotes import get_remotes, show_remotes, add_remote
 
-def main():
+def main( args ):
 
-    args = get_user_input()
     settings = get_settings()
-
-    try:
-        operands = get_operands( args )
-    except:
-        operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
 
     if not args:
         usage()
@@ -48,28 +42,33 @@ def main():
         elif arg == "@submodules":
             show_submodules()
 
-        for operator, parameter in operands.items():
-            if not is_empty( parameter ):
-                if operator == "add" or operator == "reset":
-                    git( operator, parameter )
-                elif operator == "push":
-                    if len( parameter ) == 1:
-                        git( "push", [ "origin", parameter[0][1:] ] )
-                    elif len( parameter ) == 2:
-                        git( "push", [ parameter[1][1:], parameter[0][1:] ] )
-                elif operator == "merge":
-                    if len( parameter ) == 1:
-                        git( "merge", parameter[0][1:] )
-                    elif len( parameter ) == 2:
-                        git( "checkout",  [ parameter[0][1:] ]  )
-                        git( "merge", parameter[1][1:] )
-                elif operator == "cd":
-                    os.chdir( os.path.expanduser( parameter[0] ) )
-                elif operator == "set":
-                    if is_submodule( parameter[0] ):
-                        add_submodule( parameter[0][1:], parameter[1] )
+    try:
+        operands = get_operands( args )
+    except:
+        operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
 
-def get_user_input():
+    for operator, parameter in operands.items():
+        if not is_empty( parameter ):
+            if operator == "add" or operator == "reset":
+                git( operator, parameter )
+            elif operator == "push":
+                if len( parameter ) == 1:
+                    git( "push", [ "origin", parameter[0][1:] ] )
+                elif len( parameter ) == 2:
+                    git( "push", [ parameter[1][1:], parameter[0][1:] ] )
+            elif operator == "merge":
+                if len( parameter ) == 1:
+                    git( "merge", parameter[0][1:] )
+                elif len( parameter ) == 2:
+                    git( "checkout",  [ parameter[0][1:] ]  )
+                    git( "merge", parameter[1][1:] )
+            elif operator == "cd":
+                os.chdir( os.path.expanduser( parameter[0] ) )
+            elif operator == "set":
+                if is_submodule( parameter[0] ):
+                    add_submodule( parameter[0][1:], parameter[1] )
+
+def get_user_input( args = sys.argv ):
     """Returns the arguments in an list which are typed-in by the user
 
     When the user defines an argument via the command-line, "G" directly interprets the argument.
@@ -78,14 +77,14 @@ def get_user_input():
     When the user simply invakes G witouh an argument, an interacitve shell session is started:
     The history is saved and some Emacs editing keys are working.
     """
-    if len( sys.argv ) == 1:
+    if len( args ) == 1:
         console = GConsole()
         return console.raw_input( "G " + fg.red( ">" ) + " " ).split()
-    if len( sys.argv ) == 2:
-        if type( sys.argv[1] ) == str:
-            return sys.argv[1].split()
+    if len( args ) == 2:
+        if type( args[1] ) == str:
+            return args[1].split()
     else:
-        return sys.argv
+        return args
 
 def get_operator( args ):
     """Get the operator from the Arguments
@@ -166,10 +165,18 @@ if __name__ == "__main__":
     When the python file is imported as a package, the settings variable is set. This behaviour makes
     it possible to use "G" a an python module.
     """
-    try:
-        while True:
-            main()
-    except BaseException:
-        sys.exit(0)
+    if len( sys.argv ) > 1:
+        if sys.argv[1] == "-d" or sys.argv[1] == "--debug":
+            args = sys.argv
+            args.remove( args[1] )
+            main( get_user_input( args ) )
+            sys.exit( 0 )
+    else:
+        try:
+            args = get_user_input()
+            while True:
+                main( args )
+        except BaseException:
+            sys.exit( 0 )
 else:
     settings = get_settings()
