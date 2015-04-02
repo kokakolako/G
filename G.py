@@ -29,7 +29,7 @@ from G.cli_colors import fg, bg
 from G.submodules import get_submodules, show_submodules, find_submodules, add_submodule
 from G.remotes import get_remotes, show_remotes, add_remote
 
-dbMefmain( args ):
+def main( args ):
 
     settings = get_settings()
 

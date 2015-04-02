@@ -91,3 +91,5 @@ def git( cmd, operand ):
             subprocess.check_call( [ "git", cmd ] + operand )
     except OSError:
         error( "Git need to be installed to proberly use G" )
+
+# def error_handling( exception ):
