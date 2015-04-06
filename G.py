@@ -47,6 +47,7 @@ def main( args ):
         if not is_empty( parameter ):
             if operator == "add" or operator == "reset":
                 git( operator, parameter )
+                git( status )
             elif operator == "push":
                 if len( parameter ) == 1:
                     git( "push", [ "origin", parameter[0][1:] ] )
