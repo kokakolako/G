@@ -32,6 +32,7 @@ from G.submodules import show_submodules, add_submodule
 def main( args ):
 
     settings = get_settings()
+    operands = get_operands( args )
 
     if not args:
         usage()
@@ -134,17 +135,16 @@ def get_operands( args ):
         args: The arguments that need to be checked for operands
     """
     # The index number of the last element in the args list
+
     length = len( args ) - 1
     operator = get_operator( args )
 
-    # Create an empty operands dictionary, when the operands
-    # dictionary does not exist
-    if not operands:
-        operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
     for arg in args:
         # The index of the current argument (arg)
         index = args.index( arg )
         if index < length:
+            if index == 0:
+                operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
             if index >= 0:
                 if not get_operator( arg ):
                     operands.get( operator ).append( arg )
@@ -155,7 +155,8 @@ def get_operands( args ):
         # Return all operands when the index is equally to the length of the
         # arguments array, the recursiomn stops at this pint (also append the
         elif index == length:
-            return operands.get( operator ).append( arg )
+            operands.get( operator ).append( arg )
+            return operands
 
 # Check if the program is started via the executable
 if __name__ == "__main__":
