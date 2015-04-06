@@ -76,7 +76,7 @@ def count_lines( file ):
     except FileNotFoundError:
         pass
 
-def git( cmd, operand ):
+def git( cmd, operand = None  ):
     """Start a git command as a subprocess
 
     Arguments:
@@ -85,7 +85,9 @@ def git( cmd, operand ):
         operand: Contains the files or branches, that need to be processed.
     """
     try:
-        if type( operand ) == str:
+        if not operand:
+            subprocess.check_call( [ "git", cmd ] )
+        elif type( operand ) == str:
             subprocess.check_call( [ "git", cmd ] + operand.split() )
         else:
             subprocess.check_call( [ "git", cmd ] + operand )
