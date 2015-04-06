@@ -21,13 +21,13 @@
 
 import os, sys
 
-from G.config import history_file, config_file, config_dir
-from G.settings import get_settings, save_settings
+from G.cli_colors import fg
+from G.config import history_file
 from G.helpers import *
-from G.messages import error, warning, success, usage
-from G.cli_colors import fg, bg
-from G.submodules import get_submodules, show_submodules, find_submodules, add_submodule
-from G.remotes import get_remotes, show_remotes, add_remote
+from G.messages import usage
+from G.remotes import show_remotes, add_remote
+from G.settings import get_settings
+from G.submodules import show_submodules, add_submodule
 
 def main( args ):
 
@@ -41,11 +41,6 @@ def main( args ):
             show_remotes()
         elif arg == "@submodules":
             show_submodules()
-
-    try:
-        operands = get_operands( args )
-    except:
-        operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
 
     for operator, parameter in operands.items():
         if not is_empty( parameter ):
@@ -138,11 +133,16 @@ def get_operands( args ):
     Arguments:
         args: The arguments that need to be checked for operands
     """
+    # The index number of the last element in the args list
     length = len( args ) - 1
     operator = get_operator( args )
+
+    # Create an empty operands dictionary, when the operands
+    # dictionary does not exist
     if not operands:
         operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
     for arg in args:
+        # The index of the current argument (arg)
         index = args.index( arg )
         if index < length:
             if index >= 0:
@@ -152,9 +152,12 @@ def get_operands( args ):
                 if arg == "+" or arg == "-" or arg == "~":
                     del args[0:index]
                     return get_operands( args )
+        # Return all operands when the index is equally to the length of the
+        # arguments array, the recursiomn stops at this pint (also append the
         elif index == length:
             return operands.get( operator ).append( arg )
 
+# Check if the program is started via the executable
 if __name__ == "__main__":
     """Start main() function and handle errors
 
@@ -165,25 +168,33 @@ if __name__ == "__main__":
     When the python file is imported as a package, the settings variable is set. This behaviour makes
     it possible to use "G" a an python module.
     """
+
+    # Check if the history is longer than "history-length"
+    # The initialization of G would be otherwise VERY slow
+    history_file()
+
+    # Parse optional arguments
     if len( sys.argv ) > 1:
-        # Start G in debug mode
+        # Start G in debug mode ( main is executed one single time,
+        # errors become printed to stderr )
         if sys.argv[1] == "-d" or sys.argv[1] == "--debug":
             args = sys.argv
+            # Remove the debug parameter
             args.remove( args[1] )
-            # Check if the history is longer than "history-length"
-            # The initialization of G would be otherwise VERY slow
-            history_file()
             main( get_user_input( args ) )
-            sys.exit( 0 )
+    # Loop main() as long as the user does not stop G via <C-c>
+    # or <C-d>, handle runtime errors via exceptions.
     else:
         while True:
             try:
-                # Check if the history is longer than "history-length"
-                # The initialization of G would be otherwise VERY slow
-                history_file()
+                # Get user input and redirect the arguments to the
+                # main() function
                 args = get_user_input()
                 main( args )
             except BaseException:
                 sys.exit( 0 )
+# If the user starts G as a script (i.e. importing G via python),
+# get settings from the config file (instead of get the settings via
+# a user input
 else:
     settings = get_settings()
