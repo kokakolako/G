@@ -76,7 +76,9 @@ def get_user_input( args = sys.argv ):
     """
     if len( args ) == 1:
         console = GConsole()
-        return console.raw_input( "G " + fg.red( ">" ) + " " ).split()
+        # Decorate the user prompt
+        prompt = "G:" + fg.blue( get_current_branch() ) + " " + fg.red( ">" ) + " "
+        return console.raw_input( prompt ).split()
     if len( args ) == 2:
         if type( args[1] ) == str:
             return args[1].split()
