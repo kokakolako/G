@@ -94,4 +94,9 @@ def git( cmd, operand = None  ):
     except OSError:
         error( "Git need to be installed to proberly use G" )
 
-# def error_handling( exception ):
+def get_current_branch():
+    current_branch = subprocess.check_output( "git rev-parse --abbrev-ref HEAD".split() )
+    # Convert the byte-string to utf-8
+    current_branch = current_branch.decode( "utf-8" )
+    # Return the current branch without the newline character ("\n")
+    return current_branch[:-1]
