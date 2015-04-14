@@ -47,7 +47,7 @@ def is_path( possible_path ):
     else:
         return False
 
-def is_branch( possible_branch ):
+def is_variable( possible_branch ):
     """Returns True when the possible_branch is a branch
 
     In "G" syntax a branch is escaped by a "@" (i.e. @name_of_branch)

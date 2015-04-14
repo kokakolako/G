@@ -1,7 +1,7 @@
 #!/bin/env python3
 # Submodules
 
-import os
+import os, threading
 
 from G.settings import get_settings
 from G.cli_colors import fg
@@ -42,14 +42,14 @@ def add_submodule( path, ignore_dirty = True, settings = get_settings() ):
 
 def show_submodules():
     if get_submodules():
-        print( fg.blue( "Submodules:" ) )
+        print( fg.green( "Submodules:" ) )
         for submodule in get_submodules():
             for path, values in submodule.items():
                 print( "  - " + path )
     else:
         warning( "You have not added submodules to the config.config_file \"" + config.file() + "\"" )
 
-def find_submodules( dir = os.path.expanduser( "~" ) ):
+def find_submodules( dir = os.path.expanduser( "~" ), settings = get_settings() ):
     """Search for submodules
 
     Arguments:

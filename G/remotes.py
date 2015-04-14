@@ -18,7 +18,7 @@ def get_remotes( settings = get_settings() ):
 
 def show_remotes():
     if get_remotes():
-        print( fg.blue( "Remotes:" ) )
+        print( fg.green( "Remotes:" ) )
         for remote in get_remotes():
             for name, url in remote.items():
                 print( "  - " + name + ": " + url )

@@ -19,7 +19,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import os, sys
+import os, sys, threading
 
 from G.cli_colors import fg
 from G.config import history_file
@@ -27,7 +27,7 @@ from G.helpers import *
 from G.messages import usage
 from G.remotes import show_remotes, add_remote
 from G.settings import get_settings
-from G.submodules import show_submodules, add_submodule
+from G.submodules import find_submodules, show_submodules, add_submodule
 
 def main( args ):
 
@@ -43,29 +43,32 @@ def main( args ):
         elif arg == "@submodules":
             show_submodules()
 
-    for operator, parameter in operands.items():
-        if not is_empty( parameter ):
-            if operator == "add" or operator == "reset":
-                git( operator, parameter )
-                git( status )
-            elif operator == "push":
-                if len( parameter ) == 1:
-                    git( "push", [ "origin", parameter[0][1:] ] )
-                elif len( parameter ) == 2:
-                    git( "push", [ parameter[1][1:], parameter[0][1:] ] )
-            elif operator == "merge":
-                if len( parameter ) == 1:
-                    git( "merge", parameter[0][1:] )
-                elif len( parameter ) == 2:
-                    git( "checkout",  [ parameter[0][1:] ]  )
-                    git( "merge", parameter[1][1:] )
-            elif operator == "cd":
-                os.chdir( os.path.expanduser( parameter[0] ) )
-            elif operator == "set":
-                if is_submodule( parameter[0] ):
-                    add_submodule( parameter[0][1:], parameter[1] )
+    try:
+        for operator, parameter in operands.items():
+            if not is_empty( parameter ):
+                if operator == "add" or operator == "reset":
+                    git( operator, parameter )
+                    git( status )
+                elif operator == "push":
+                    if len( parameter ) == 1:
+                        git( "push", [ "origin", parameter[0][1:] ] )
+                    elif len( parameter ) == 2:
+                        git( "push", [ parameter[1][1:], parameter[0][1:] ] )
+                elif operator == "merge":
+                    if len( parameter ) == 1:
+                        git( "merge", parameter[0][1:] )
+                    elif len( parameter ) == 2:
+                        git( "checkout",  [ parameter[0][1:] ]  )
+                        git( "merge", parameter[1][1:] )
+                elif operator == "cd":
+                    os.chdir( os.path.expanduser( parameter[0] ) )
+                elif operator == "set":
+                    if is_submodule( parameter[0] ):
+                        add_submodule( parameter[0][1:], parameter[1] )
+    except:
+        pass
 
-def get_user_input( args = sys.argv ):
+def get_args( args = sys.argv ):
     """Returns the arguments in an list which are typed-in by the user
 
     When the user defines an argument via the command-line, "G" directly interprets the argument.
@@ -143,6 +146,7 @@ def get_operands( args ):
     operator = get_operator( args )
 
     for arg in args:
+
         # The index of the current argument (arg)
         index = args.index( arg )
         if index < length:
@@ -155,9 +159,10 @@ def get_operands( args ):
                 if arg == "+" or arg == "-" or arg == "~":
                     del args[0:index]
                     return get_operands( args )
+
         # Return all operands when the index is equally to the length of the
         # arguments array, the recursiomn stops at this pint (also append the
-        elif index == length:
+        elif index == length and not index == 0:
             operands.get( operator ).append( arg )
             return operands
 
@@ -177,28 +182,30 @@ if __name__ == "__main__":
     # The initialization of G would be otherwise VERY slow
     history_file()
 
-    # Parse optional arguments
-    if len( sys.argv ) > 1:
-        # Start G in debug mode ( main is executed one single time,
-        # errors become printed to stderr )
-        if sys.argv[1] == "-d" or sys.argv[1] == "--debug":
-            args = sys.argv
-            # Remove the debug parameter
-            args.remove( args[1] )
-            main( get_user_input( args ) )
-    # Loop main() as long as the user does not stop G via <C-c>
-    # or <C-d>, handle runtime errors via exceptions.
-    else:
-        while True:
+    # Execute find_submodules in the background, as it takes some time
+    find_submodules_thread = threading.Thread( target = find_submodules )
+    find_submodules_thread.start()
+
+    while True:
+        # Parse optional arguments
+        if len( sys.argv ) > 1:
+            # Start G in debug mode ( main is executed one single time,
+            # errors become printed to stderr )
+            if sys.argv[1] == "-d" or sys.argv[1] == "--debug":
+                # Remove the debug parameter
+                del sys.argv[1]
+                main( args = sys.argv )
+        else:
             try:
-                # Get user input and redirect the arguments to the
-                # main() function
-                args = get_user_input()
-                main( args )
+                main( args = get_args() )
+            # Ignore attribute errors
+            except AttributeError:
+                pass
+            # Quit G via <C-c> or <C-d>
             except BaseException:
                 sys.exit( 0 )
-# If the user starts G as a script (i.e. importing G via python),
-# get settings from the config file (instead of get the settings via
-# a user input
+
+# When the user starts G as a script (for example: importing G as a module),
+# get settings from the config file (instead of get the settings via a user input
 else:
     settings = get_settings()

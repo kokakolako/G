@@ -47,16 +47,16 @@ def is_path( possible_path ):
     else:
         return False
 
-def is_branch( possible_branch ):
-    """Returns True when the possible_branch is a branch
+def is_variable( possible_variable ):
+    """Returns True when the possible_variable is a branch
 
-    In "G" syntax a branch is escaped by a "@" (i.e. @name_of_branch)
-    This function checks the argument "possible_branch" for exactly this syntax.
+    In "G" syntax a variable is escaped by a "@" (i.e. @name_of_branch)
+    This function checks the argument "possible_variable" for exactly this syntax.
 
     Arguments:
-        possible_branch: A string which should be checked for the branch-syntax of "G"
+        possible_variable: A string which should be checked for the branch-syntax of "G"
     """
-    if re.match( r"^\@[\w\-\.\/]*$", possible_branch ):
+    if re.match( r"^\@[\w\-\.\/]*$", possible_variable ):
         return True
     else:
         return False
