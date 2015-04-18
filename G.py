@@ -24,9 +24,9 @@ from G.cli_colors import fg
 from G.config import history_file
 from G.helpers import *
 from G.messages import usage
-from G.remotes import show_remotes, add_remote
+from G.remotes import add_remote, show_remotes
 from G.settings import get_settings
-from G.submodules import find_submodules, show_submodules, add_submodule
+from G.submodules import add_submodule, find_submodules, show_submodules, update_submodules
 
 def main( args ):
 
@@ -36,11 +36,14 @@ def main( args ):
     if not args:
         usage()
     elif len( args ) == 1:
-        arg = args[0]
-        if arg == "@remotes":
+        if args[0] == "@remotes":
             show_remotes()
-        elif arg == "@submodules":
+        elif args[0] == "@submodules":
             show_submodules()
+        elif args[0] == "update":
+            update_submodules()
+        elif args[0] == "usage" or args[0] == "help":
+            usage()
 
     try:
         for operator, parameter in operands.items():

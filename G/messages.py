@@ -41,13 +41,14 @@ G is an interface to simplify the work with the git command line tool.
 
 SYNTAX COMPARED TO GIT:
 
-+------------------------------------+--------------------------+---------------------------+
-| Task                               | Git syntax               | G Syntax                  |
-+------------------------------------+--------------------------+---------------------------+
-| Add files to the index             | git add file1 file2      | + file1 file2             |
-| Remove files from the index        | git reset file1 file2    | - file1 file2             |
-| Push branch to a remote repository | git push origin master   | @master -> @origin        |
-| Merge branches                     | git merge feature-branch | @feature-branch > @master |
-+------------------------------------+--------------------------+---------------------------+\
++-----------------------------+----------------------------------------------+---------------------------+
+| Task                        | Git syntax                                   | G Syntax                  |
++-----------------------------+----------------------------------------------+---------------------------+
+| Add files to the index      | git add file1 file2                          | + file1 file2             |
+| Remove files from the index | git reset file1 file2                        | - file1 file2             |
+| Push to a remote repository | git push origin master                       | @master -> @origin        |
+| Merge branches              | git merge feature-branch                     | @feature-branch > @master |
+| Update all submodules       | git submodule foreach git pull origin master | update                    |
++-----------------------------+----------------------------------------------+---------------------------+\
 """
     print( usage )

@@ -5,6 +5,7 @@ import os, threading
 
 from G.settings import get_settings, save_settings
 from G.cli_colors import fg
+from G.helpers import git
 
 def get_submodules( settings = get_settings() ):
     """Returns a list of all submodules """
@@ -82,3 +83,9 @@ def ignore_submodule( path_to_submodule ):
     if not path_to_submodule in ignored_submodules:
         ignored_submodules.append( os.expanduser( path_to_submodule ) )
     save_settings( settings )
+
+def update_submodules( submodules = get_settings().get( "submodules" ) ):
+    for submodule in submodules:
+        path_to_submodule = os.path.dirname( list( submodule.keys() )[0] )
+        os.chdir( path_to_submodule )
+        git( "submodule", "foreach git pull origin master" )
