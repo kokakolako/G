@@ -7,22 +7,35 @@ def version():
     return "0.0.1"
 
 def config_dir():
-    dir = os.path.join( os.path.expanduser( "~" ), ".config", "G" )
-    if not os.path.exists( dir ):
-        os.makedirs ( dir, exists_ok = True )
-    return dir
+    config_dir = os.path.join( os.path.expanduser( "~" ), ".config", "G" )
+    if not os.path.exists( config_dir ):
+        os.makedirs ( config_dir, exists_ok = True )
+    return config_dir
 
 def config_file():
-    config = os.path.join( os.path.expanduser( "~" ), ".config", "G", "config.yml" )
-    if not os.path.isfile( config ):
-        with open( config, "w" ) as file:
+    config_file = os.path.join( os.path.expanduser( "~" ), ".config", "G", "config.yml" )
+    if not os.path.isfile( config_file ):
+        with open( config_file, "w" ) as file:
             file.close()
-    return config
+    return config_file
 
 def history_file():
-    history = os.path.join( os.path.expanduser( "~" ), ".config", "G", "history" )
-    if not os.path.isfile( history ):
-        if count_lines( history ) == settings.get( "history-length" ):
-            with open( history, "w" ) as file:
+    history_file = os.path.join( os.path.expanduser( "~" ), ".config", "G", "history" )
+    if not os.path.isfile( history_file ):
+        if count_lines( history_file ) == settings.get( "history-length" ):
+            with open( history_file, "w" ) as file:
                 file.close()
-    return history
+    return history_file
+
+def count_lines( file ):
+    try:
+        if os.path.isfile( file ):
+            output = subprocess.check_output( [ "wc", "-l" ],
+                    stdin = open( file, "r" ) )
+            return int( output )
+    except OSError:
+        warning( "You need to have installed 'wc' to run 'G' proberly" )
+        pass
+    except FileNotFoundError:
+        pass
+

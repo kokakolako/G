@@ -64,18 +64,6 @@ def is_variable( possible_variable ):
 def is_empty( element ):
     return len( element ) == 0
 
-def count_lines( file ):
-    try:
-        if os.path.isfile( file ):
-            output = subprocess.check_output( [ "wc", "-l" ],
-                    stdin = open( file, "r" ) )
-            return int( output )
-    except OSError:
-        warning( "You need to have installed 'wc' to run 'G' proberly" )
-        pass
-    except FileNotFoundError:
-        pass
-
 def git( cmd, operand = None  ):
     """Start a git command as a subprocess
 

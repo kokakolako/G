@@ -1,5 +1,4 @@
 #!/bin/env python3
-
 # G -- An interactive shell for Git
 # -------------------------------------------------------------------------
 #
@@ -178,19 +177,22 @@ if __name__ == "__main__":
     it possible to use "G" a an python module.
     """
 
-    # Check if the history is longer than "history-length"
-    # The initialization of G would be otherwise VERY slow
-    history_file()
+    # Start some processes in the background:
+    # The daemon parameter is necessary to not raise failure messages
+    # when exit via <C-d> or <C-c>
 
-    # Execute find_submodules in the background, as it takes some time
-    find_submodules_thread = threading.Thread( target = find_submodules )
-    find_submodules_thread.start()
+    # Check if the history is longer than "history-length"
+    threading.Thread( target = history_file, daemon = True ).start()
+
+    # Execute find_submodules in the background
+    threading.Thread( target = find_submodules, daemon = True ).start()
+
 
     while True:
         # Parse optional arguments
         if len( sys.argv ) > 1:
-            # Start G in debug mode ( main is executed one single time,
-            # errors become printed to stderr )
+            # Start G in debug mode (main is executed one single time,
+            # errors become printed to stderr)
             if sys.argv[1] == "-d" or sys.argv[1] == "--debug":
                 # Remove the debug parameter
                 del sys.argv[1]
