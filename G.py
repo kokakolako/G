@@ -104,7 +104,6 @@ def get_operator( args ):
     Arguments:
         args: The arguments that need to be processed to get the operator
     """
-
     if type( args ) == str:
         args = [ args ]
 
@@ -149,13 +148,11 @@ def get_operands( args ):
     Arguments:
         args: The arguments that need to be checked for operands
     """
-
     # The index number of the last element in the args list
     length = len( args ) - 1
     operator = get_operator( args )
 
     for arg in args:
-
         # The index of the current argument (arg)
         index = args.index( arg )
         if index < length:
@@ -185,7 +182,6 @@ if __name__ == "__main__":
     When the python file is imported as a package, the settings variable is set. This behaviour makes
     it possible to use "G" a an python module.
     """
-
     # Start some processes in the background:
     # The daemon parameter is necessary to not raise failure messages
     # when exit via <C-d> or <C-c>
@@ -213,7 +209,6 @@ if __name__ == "__main__":
             # Quit G via <C-c> or <C-d>
             except BaseException:
                 sys.exit( 0 )
-
 # When the user starts G as a script (for example: importing G as a module),
 # get settings from the config file (instead of get the settings via a user input
 else:
