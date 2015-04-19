@@ -160,7 +160,7 @@ def get_operands( args ):
         if index < length:
             if index == 0:
                 operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [], "diff": [] }
-            elif index >= 0:
+            if index >= 0:
                 if not get_operator( arg ):
                     operands.get( operator ).append( arg )
             elif index > 0:
