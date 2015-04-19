@@ -44,8 +44,10 @@ def main( args ):
             update_submodules()
         elif args[0] == "usage" or args[0] == "help":
             usage()
-        elif args[0] == "status":
+        elif args[0] == "@index" or args[0] == "status":
             git( "status" )
+        elif args[0] == "@branches":
+            git( "branch" )
 
     try:
         for operator, parameter in operands.items():
