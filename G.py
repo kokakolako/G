@@ -186,7 +186,7 @@ if __name__ == "__main__":
     """
     # Start some processes in the background:
     # The daemon parameter is necessary to not raise failure messages
-    # when exit via <C-d> or <C-c>
+    # when exiting via <C-d> or <C-c>
 
     # Check if the history is longer than "history-length"
     threading.Thread( target = history_file, daemon = True ).start()
@@ -199,7 +199,7 @@ if __name__ == "__main__":
             # Start G in debug mode (main is executed one single time,
             # errors become printed to stderr)
             if sys.argv[1] == "-d" or sys.argv[1] == "--debug":
-                # Remove the debug parameter
+                # Remove the debug parameter from the arguments
                 del sys.argv[1]
                 main( args = sys.argv )
         else:
@@ -211,6 +211,7 @@ if __name__ == "__main__":
             # Quit G via <C-c> or <C-d>
             except BaseException:
                 sys.exit( 0 )
+
 # When the user starts G as a script (for example: importing G as a module),
 # get settings from the config file (instead of get the settings via a user input
 else:
