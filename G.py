@@ -44,13 +44,15 @@ def main( args ):
             update_submodules()
         elif args[0] == "usage" or args[0] == "help":
             usage()
+        elif args[0] == "status":
+            git( "status" )
 
     try:
         for operator, parameter in operands.items():
             if not is_empty( parameter ):
                 if operator == "add" or operator == "reset":
                     git( operator, parameter )
-                    git( status )
+                    git( "status" )
                 elif operator == "push":
                     if len( parameter ) == 1:
                         git( "push", [ "origin", parameter[0][1:] ] )
@@ -67,6 +69,8 @@ def main( args ):
                 elif operator == "set":
                     if is_submodule( parameter[0] ):
                         add_submodule( parameter[0][1:], parameter[1] )
+                elif operator == "diff":
+                    git( "diff", parameter )
     except:
         pass
 
@@ -83,6 +87,7 @@ def get_args( args = sys.argv ):
         console = GConsole()
         # Decorate the user prompt
         prompt = "G:" + fg.blue( get_current_branch() ) + " " + fg.red( ">" ) + " "
+        # Yes it's called raw_input, stupid heh?
         return console.raw_input( prompt ).split()
     if len( args ) == 2:
         if type( args[1] ) == str:
@@ -114,6 +119,8 @@ def get_operator( args ):
                 return "merge"
             elif arg == "cd":
                 return "cd"
+            elif arg == "diff":
+                return "diff"
         if index == 0:
             if arg == "+":
                 return "add"
@@ -142,8 +149,8 @@ def get_operands( args ):
     Arguments:
         args: The arguments that need to be checked for operands
     """
-    # The index number of the last element in the args list
 
+    # The index number of the last element in the args list
     length = len( args ) - 1
     operator = get_operator( args )
 
@@ -153,15 +160,14 @@ def get_operands( args ):
         index = args.index( arg )
         if index < length:
             if index == 0:
-                operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
-            if index >= 0:
+                operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [], "diff": [] }
+            elif index >= 0:
                 if not get_operator( arg ):
                     operands.get( operator ).append( arg )
             elif index > 0:
                 if arg == "+" or arg == "-" or arg == "~":
                     del args[0:index]
                     return get_operands( args )
-
         # Return all operands when the index is equally to the length of the
         # arguments array, the recursiomn stops at this pint (also append the
         elif index == length and not index == 0:
@@ -186,10 +192,8 @@ if __name__ == "__main__":
 
     # Check if the history is longer than "history-length"
     threading.Thread( target = history_file, daemon = True ).start()
-
     # Execute find_submodules in the background
     threading.Thread( target = find_submodules, daemon = True ).start()
-
 
     while True:
         # Parse optional arguments
