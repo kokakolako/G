@@ -47,36 +47,31 @@ def is_path( possible_path ):
     else:
         return False
 
-def is_variable( possible_branch ):
-    """Returns True when the possible_branch is a branch
+def is_variable( possible_variable ):
+    """Returns True when the possible_variable is a branch
 
-    In "G" syntax a branch is escaped by a "@" (i.e. @name_of_branch)
-    This function checks the argument "possible_branch" for exactly this syntax.
+    In "G" syntax a variable is escaped by a "@" (i.e. @name_of_branch)
+    This function checks the argument "possible_variable" for exactly this syntax.
 
     Arguments:
-        possible_branch: A string which should be checked for the branch-syntax of "G"
+        possible_variable: A string which should be checked for the branch-syntax of "G"
     """
-    if re.match( r"^\@[\w\-\.\/]*$", possible_branch ):
+    if re.match( r"^\@[\w\-\.\/]*$", possible_variable ):
         return True
     else:
         return False
 
+def is_repository( possible_repository = os.getcwd() ):
+    for file in os.listdir( possible_repository ):
+        if file == ".git":
+            return True
+        else:
+            return False
+
 def is_empty( element ):
     return len( element ) == 0
 
-def count_lines( path_to_file ):
-    try:
-        if is_path( path_to_file ):
-            output = subprocess.check_output( [ "wc", "-l" ],
-                    stdin = open( path_to_file, "r" ) )
-            return int( output )
-    except OSError:
-        warning( "You need to have installed 'wc' to run 'G' proberly" )
-        pass
-    except FileNotFoundError:
-        pass
-
-def git( cmd, operand ):
+def git( cmd, operand = None  ):
     """Start a git command as a subprocess
 
     Arguments:
@@ -85,9 +80,18 @@ def git( cmd, operand ):
         operand: Contains the files or branches, that need to be processed.
     """
     try:
-        if type( operand ) == str:
+        if not operand:
+            subprocess.check_call( [ "git", cmd ] )
+        elif type( operand ) == str:
             subprocess.check_call( [ "git", cmd ] + operand.split() )
         else:
             subprocess.check_call( [ "git", cmd ] + operand )
     except OSError:
         error( "Git need to be installed to proberly use G" )
+
+def get_current_branch():
+    current_branch = subprocess.check_output( "git rev-parse --abbrev-ref HEAD".split() )
+    # Convert the byte-string to utf-8
+    current_branch = current_branch.decode( "utf-8" )
+    # Return the current branch without the newline character ("\n")
+    return current_branch[:-1]

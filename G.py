@@ -1,5 +1,4 @@
-#!/usr/bin/python3.4
-
+#!/bin/env python3
 # G -- An interactive shell for Git
 # -------------------------------------------------------------------------
 #
@@ -19,39 +18,43 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import os, sys
+import os, sys, threading
 
-from G.config import history_file, config_file, config_dir
-from G.settings import get_settings, save_settings
-from G.helpers import *
-from G.messages import error, warning, success, usage
-from G.cli_colors import fg, bg
-from G.submodules import get_submodules, show_submodules, find_submodules, add_submodule
-from G.remotes import get_remotes, show_remotes, add_remote
+from cli_colors import fg
+from config import history_file
+from helpers import *
+from messages import usage
+from remotes import add_remote, show_remotes
+from settings import get_settings
+from submodules import add_submodule, find_submodules, show_submodules, update_submodules
 
-def main():
+def main( args ):
 
-    args = get_user_input()
     settings = get_settings()
-
-    try:
-        operands = get_operands( args )
-    except:
-        operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
+    operands = get_operands( args )
 
     if not args:
         usage()
     elif len( args ) == 1:
-        arg = args[0]
-        if arg == "@remotes":
+        if args[0] == "@remotes":
             show_remotes()
-        elif arg == "@submodules":
+        elif args[0] == "@submodules":
             show_submodules()
+        elif args[0] == "update":
+            update_submodules()
+        elif args[0] == "usage" or args[0] == "help":
+            usage()
+        elif args[0] == "@index" or args[0] == "status":
+            git( "status" )
+        elif args[0] == "@branches":
+            git( "branch" )
 
+    try:
         for operator, parameter in operands.items():
             if not is_empty( parameter ):
                 if operator == "add" or operator == "reset":
                     git( operator, parameter )
+                    git( "status" )
                 elif operator == "push":
                     if len( parameter ) == 1:
                         git( "push", [ "origin", parameter[0][1:] ] )
@@ -68,8 +71,12 @@ def main():
                 elif operator == "set":
                     if is_submodule( parameter[0] ):
                         add_submodule( parameter[0][1:], parameter[1] )
+                elif operator == "diff":
+                    git( "diff", parameter )
+    except:
+        pass
 
-def get_user_input():
+def get_args( args = sys.argv ):
     """Returns the arguments in an list which are typed-in by the user
 
     When the user defines an argument via the command-line, "G" directly interprets the argument.
@@ -78,14 +85,21 @@ def get_user_input():
     When the user simply invakes G witouh an argument, an interacitve shell session is started:
     The history is saved and some Emacs editing keys are working.
     """
-    if len( sys.argv ) == 1:
+    if len( args ) == 1:
         console = GConsole()
-        return console.raw_input( "G " + fg.red( ">" ) + " " ).split()
-    if len( sys.argv ) == 2:
-        if type( sys.argv[1] ) == str:
-            return sys.argv[1].split()
+        # Decorate the user prompt: When the current directory is a
+        # repository the prompt is also decorated with the branches name
+        if is_repository():
+            prompt = "G:" + fg.blue( get_current_branch() ) + " " + fg.red( ">" ) + " "
+        else:
+            prompt = "G " + fg.red( ">" ) + " "
+        # Yes it's called raw_input, stupid heh?
+        return console.raw_input( prompt ).split()
+    if len( args ) == 2:
+        if type( args[1] ) == str:
+            return args[1].split()
     else:
-        return sys.argv
+        return args
 
 def get_operator( args ):
     """Get the operator from the Arguments
@@ -96,7 +110,6 @@ def get_operator( args ):
     Arguments:
         args: The arguments that need to be processed to get the operator
     """
-
     if type( args ) == str:
         args = [ args ]
 
@@ -111,6 +124,8 @@ def get_operator( args ):
                 return "merge"
             elif arg == "cd":
                 return "cd"
+            elif arg == "diff":
+                return "diff"
         if index == 0:
             if arg == "+":
                 return "add"
@@ -139,13 +154,16 @@ def get_operands( args ):
     Arguments:
         args: The arguments that need to be checked for operands
     """
+    # The index number of the last element in the args list
     length = len( args ) - 1
     operator = get_operator( args )
-    if not operands:
-        operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [] }
+
     for arg in args:
+        # The index of the current argument (arg)
         index = args.index( arg )
         if index < length:
+            if index == 0:
+                operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [], "diff": [] }
             if index >= 0:
                 if not get_operator( arg ):
                     operands.get( operator ).append( arg )
@@ -153,9 +171,13 @@ def get_operands( args ):
                 if arg == "+" or arg == "-" or arg == "~":
                     del args[0:index]
                     return get_operands( args )
-        elif index == length:
-            return operands.get( operator ).append( arg )
+        # Return all operands when the index is equally to the length of the
+        # arguments array, the recursiomn stops at this pint (also append the
+        elif index == length and not index == 0:
+            operands.get( operator ).append( arg )
+            return operands
 
+# Check if the program is started via the executable
 if __name__ == "__main__":
     """Start main() function and handle errors
 
@@ -166,10 +188,35 @@ if __name__ == "__main__":
     When the python file is imported as a package, the settings variable is set. This behaviour makes
     it possible to use "G" a an python module.
     """
-    try:
-        while True:
-            main()
-    except BaseException:
-        sys.exit(0)
+    # Start some processes in the background:
+    # The daemon parameter is necessary to not raise failure messages
+    # when exiting via <C-d> or <C-c>
+
+    # Check if the history is longer than "history-length"
+    threading.Thread( target = history_file, daemon = True ).start()
+    # Execute find_submodules in the background
+    threading.Thread( target = find_submodules, daemon = True ).start()
+
+    while True:
+        # Parse optional arguments
+        if len( sys.argv ) > 1:
+            # Start G in debug mode (main is executed one single time,
+            # errors become printed to stderr)
+            if sys.argv[1] == "-d" or sys.argv[1] == "--debug":
+                # Remove the debug parameter from the arguments
+                del sys.argv[1]
+                main( args = sys.argv )
+        else:
+            try:
+                main( args = get_args() )
+            # Ignore attribute errors
+            except AttributeError:
+                pass
+            # Quit G via <C-c> or <C-d>
+            except BaseException:
+                sys.exit( 0 )
+
+# When the user starts G as a script (for example: importing G as a module),
+# get settings from the config file (instead of get the settings via a user input
 else:
     settings = get_settings()

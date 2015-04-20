@@ -3,8 +3,9 @@
 
 import os
 
-from G.cli_colors import fg
-from G.settings import get_settings
+from cli_colors import fg
+from settings import get_settings
+from messages import warning
 
 def get_remotes( settings = get_settings() ):
     """Get all remotes, from the current repository (the current working directory)"""
@@ -17,7 +18,7 @@ def get_remotes( settings = get_settings() ):
 
 def show_remotes():
     if get_remotes():
-        print( fg.blue( "Remotes:" ) )
+        print( fg.green( "Remotes:" ) )
         for remote in get_remotes():
             for name, url in remote.items():
                 print( "  - " + name + ": " + url )
