@@ -65,8 +65,7 @@ def is_repository( possible_repository = os.getcwd() ):
     for file in os.listdir( possible_repository ):
         if file == ".git":
             return True
-        else:
-            return False
+    return False
 
 def is_empty( element ):
     return len( element ) == 0
