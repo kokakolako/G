@@ -45,7 +45,7 @@ def main( args ):
         elif args[0] == "usage" or args[0] == "help":
             usage()
         elif args[0] == "@index" or args[0] == "status":
-            git( "status" )
+            git( "status", "--short" )
         elif args[0] == "@branches":
             git( "branch" )
 
