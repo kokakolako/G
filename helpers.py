@@ -12,6 +12,7 @@ class GConsole( code.InteractiveConsole ):
     support a history, the history file is typically located at the following path:
         ~/.config/G/history
     """
+
     def __init__( self, locals = None, filename = "<console>",
             histfile = history_file() ):
         code.InteractiveConsole.__init__(self, locals, filename)
@@ -29,6 +30,7 @@ class GConsole( code.InteractiveConsole ):
 
 def emend_path( path_to_emend ):
     """This function convert a string to an OS independent path"""
+
     path = re.split( r"[\\\/]", os.path.expanduser( path_to_emend ) )
     if re.match( r"([\/\\]|[^~])", path_to_emend[0:1] ):
         return path.insert( 0, os.sep )
@@ -41,6 +43,7 @@ def is_path( possible_path ):
     Arguments:
         possible_path: A string which should be checked if it is a valid path
     """
+
     if re.match( r"^(([A-Z]\:\\\\)|([\/\\]*[\w]+))([\\\/]*[\w\-\.]*)*$",
             os.path.expanduser( possible_path ) ):
         return True
@@ -56,6 +59,7 @@ def is_variable( possible_variable ):
     Arguments:
         possible_variable: A string which should be checked for the branch-syntax of "G"
     """
+
     if re.match( r"^\@[\w\-\.\/]*$", possible_variable ):
         return True
     else:
@@ -78,6 +82,7 @@ def git( cmd, operand = None  ):
         of the following: "push", "pull", "merge", "add", "reset"
         operand: Contains the files or branches, that need to be processed.
     """
+
     try:
         if not operand:
             subprocess.check_call( [ "git", cmd ] )
