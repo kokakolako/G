@@ -48,8 +48,7 @@ def main( args ):
             git( "status", "--short" )
         elif args[0] == "@branches":
             git( "branch" )
-
-    try:
+    else:
         for operator, parameter in operands.items():
             if not is_empty( parameter ):
                 if operator == "add" or operator == "reset":
@@ -73,8 +72,6 @@ def main( args ):
                         add_submodule( parameter[0][1:], parameter[1] )
                 elif operator == "diff":
                     git( "diff", parameter )
-    except:
-        pass
 
 def get_args( args = sys.argv ):
     """Returns the arguments in an list which are typed-in by the user
@@ -110,13 +107,19 @@ def get_operator( args ):
     Arguments:
         args: The arguments that need to be processed to get the operator
     """
+
     if type( args ) == str:
         args = [ args ]
 
     for arg in args:
         index = args.index( arg )
         if index >= 0:
-            if arg == "=":
+            if index == 0:
+                if arg == "+":
+                    return "add"
+                elif arg == "-":
+                    return "reset"
+            elif arg == "=":
                 return "set"
             elif arg == "->":
                 return "push"
@@ -126,11 +129,6 @@ def get_operator( args ):
                 return "cd"
             elif arg == "diff":
                 return "diff"
-        if index == 0:
-            if arg == "+":
-                return "add"
-            elif arg == "-":
-                return "reset"
     return False
 
 def get_operands( args ):
@@ -162,10 +160,10 @@ def get_operands( args ):
         # The index of the current argument (arg)
         index = args.index( arg )
         if index < length:
-            if index == 0:
-                operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [], "diff": [] }
             if index >= 0:
-                if not get_operator( arg ):
+                if index == 0:
+                    operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [], "diff": [] }
+                elif not get_operator( arg ):
                     operands.get( operator ).append( arg )
             elif index > 0:
                 if arg == "+" or arg == "-" or arg == "~":
