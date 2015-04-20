@@ -82,6 +82,7 @@ def get_args( args = sys.argv ):
     When the user simply invakes G witouh an argument, an interacitve shell session is started:
     The history is saved and some Emacs editing keys are working.
     """
+
     if len( args ) == 1:
         console = GConsole()
         # Decorate the user prompt: When the current directory is a
@@ -152,6 +153,7 @@ def get_operands( args ):
     Arguments:
         args: The arguments that need to be checked for operands
     """
+
     # The index number of the last element in the args list
     length = len( args ) - 1
     operator = get_operator( args )
@@ -186,6 +188,7 @@ if __name__ == "__main__":
     When the python file is imported as a package, the settings variable is set. This behaviour makes
     it possible to use "G" a an python module.
     """
+
     # Start some processes in the background:
     # The daemon parameter is necessary to not raise failure messages
     # when exiting via <C-d> or <C-c>
