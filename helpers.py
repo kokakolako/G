@@ -28,6 +28,22 @@ class GConsole( code.InteractiveConsole ):
     def save_history( self, histfile ):
         readline.write_history_file( histfile )
 
+def clean_history( history_file = history_file() ):
+    previous_line = None
+    clean_lines = []
+    for line in sorted( open( history_file, "r" ) ):
+        if not line == previous_line:
+            clean_lines.append( line )
+        previous_line = line
+    # Clear the old history file
+    with open( history_file, "w" ) as file:
+        file.close()
+    # Append only lines, that are different to their previous line
+    for line in clean_lines:
+        with open( history_file, "a" ) as file:
+            file.write( line )
+    file.close()
+
 def emend_path( path_to_emend ):
     """This function convert a string to an OS independent path"""
 
