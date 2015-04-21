@@ -114,13 +114,13 @@ def get_operator( args ):
 
     for arg in args:
         index = args.index( arg )
+        if index == 0:
+            if arg == "+":
+                return "add"
+            elif arg == "-":
+                return "reset"
         if index >= 0:
-            if index == 0:
-                if arg == "+":
-                    return "add"
-                elif arg == "-":
-                    return "reset"
-            elif arg == "=":
+            if arg == "=":
                 return "set"
             elif arg == "->":
                 return "push"
@@ -162,10 +162,10 @@ def get_operands( args ):
         # The index of the current argument (arg)
         index = args.index( arg )
         if index < length:
+            if index == 0:
+                operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [], "diff": [] }
             if index >= 0:
-                if index == 0:
-                    operands = { "add": [], "reset": [], "merge": [], "push": [], "cd": [], "set": [], "diff": [] }
-                elif not get_operator( arg ):
+                if not get_operator( arg ):
                     operands.get( operator ).append( arg )
             elif index > 0:
                 if arg == "+" or arg == "-" or arg == "~":
